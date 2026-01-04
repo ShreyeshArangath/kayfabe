@@ -32,7 +32,7 @@ impl AgentInstaller {
         }
 
         // Generate universal Claude config
-        let content = Self::generate_universal_claude_config()?;
+        let content = Self::generate_universal_config()?;
 
         // Install globally and locally
         std::fs::write(&global_path, &content)?;
@@ -44,31 +44,22 @@ impl AgentInstaller {
 
     fn install_cursor_global(target_dir: &Path) -> Result<()> {
         let local_path = target_dir.join(".cursorrules");
-        let content = Self::generate_universal_cursor_config()?;
+        let content = Self::generate_universal_config()?;
         std::fs::write(&local_path, &content)?;
-
         println!("✓ Cursor agent installed locally");
         Ok(())
     }
 
     fn install_windsurf_global(target_dir: &Path) -> Result<()> {
         let local_path = target_dir.join(".windsurfrules");
-        let content = Self::generate_universal_windsurf_config()?;
+        let content = Self::generate_universal_config()?;
         std::fs::write(&local_path, &content)?;
 
         println!("✓ Windsurf agent installed locally");
         Ok(())
     }
 
-    fn generate_universal_claude_config() -> Result<String> {
-        Ok(crate::agents::templates::CLAUDE_TEMPLATE.to_string())
-    }
-
-    fn generate_universal_cursor_config() -> Result<String> {
-        Ok(crate::agents::templates::CURSOR_TEMPLATE.to_string())
-    }
-
-    fn generate_universal_windsurf_config() -> Result<String> {
-        Ok(crate::agents::templates::WINDSURF_TEMPLATE.to_string())
+    fn generate_universal_config() -> Result<String> {
+        Ok(crate::agents::templates::UNIVERSAL_AGENT_TEMPLATE.to_string())
     }
 }

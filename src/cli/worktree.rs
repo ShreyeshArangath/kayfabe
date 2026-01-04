@@ -16,7 +16,10 @@ impl WorktreeCommand {
         let current_dir = std::env::current_dir()?;
         let repo = GitRepo::discover(&current_dir)?;
 
-        let base_branch = base.unwrap_or_else(|| "main".to_string());
+        let base_branch = base.unwrap_or_else(|| {
+            repo.get_default_branch()
+                .unwrap_or_else(|_| "main".to_string())
+        });
 
         println!("{}", style(format!("Creating worktree: {}", name)).bold());
 
@@ -77,10 +80,13 @@ impl WorktreeCommand {
         );
         println!();
 
+        let base_branch = repo
+            .get_default_branch()
+            .unwrap_or_else(|_| "main".to_string());
         let mut stale_worktrees = Vec::new();
 
         for wt_path in worktrees {
-            let info = Worktree::get_info(&wt_path, "main")?;
+            let info = Worktree::get_info(&wt_path, &base_branch)?;
 
             let name = wt_path.file_name().unwrap().to_string_lossy();
             let branch = info.branch.as_deref().unwrap_or("(detached)");
@@ -153,7 +159,10 @@ impl WorktreeCommand {
         }
 
         if !force {
-            let info = Worktree::get_info(&wt_path, "main")?;
+            let base_branch = repo
+                .get_default_branch()
+                .unwrap_or_else(|_| "main".to_string());
+            let info = Worktree::get_info(&wt_path, &base_branch)?;
             if !info.safety.is_safe_to_remove {
                 let reasons = info.safety.blocked_reasons();
                 println!("{}", style("Cannot remove worktree:").red().bold());
@@ -191,8 +200,12 @@ impl WorktreeCommand {
         let mut to_remove = Vec::new();
         let mut skipped = Vec::new();
 
+        let base_branch = repo
+            .get_default_branch()
+            .unwrap_or_else(|_| "main".to_string());
+
         for wt_path in worktrees {
-            let info = Worktree::get_info(&wt_path, "main")?;
+            let info = Worktree::get_info(&wt_path, &base_branch)?;
 
             if info.is_main {
                 continue;

@@ -1,5 +1,4 @@
 pub mod installer;
-pub mod templates;
 
 pub use installer::AgentInstaller;
 

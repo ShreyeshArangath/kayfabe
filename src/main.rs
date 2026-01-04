@@ -1,9 +1,5 @@
 use clap::{Parser, Subcommand};
-use clap_complete::Shell;
-use kayfabe::cli::{
-    CompletionsCommand, ConfigCommand, InitCommand, InstallCommand, StatusCommand, TemplateCommand,
-    WorktreeCommand,
-};
+use kayfabe::cli::{ConfigCommand, InitCommand, InstallCommand, StatusCommand, WorktreeCommand};
 use std::path::PathBuf;
 use std::process;
 
@@ -61,19 +57,6 @@ enum Commands {
         #[command(subcommand)]
         command: ConfigCommands,
     },
-
-    #[command(about = "Manage workflow templates")]
-    Template {
-        #[command(subcommand)]
-        command: TemplateCommands,
-    },
-
-    #[command(about = "Generate shell completions")]
-    Completions {
-        #[arg(help = "Shell to generate completions for [bash|zsh|fish|powershell]")]
-        shell: Shell,
-    },
-
     #[command(about = "Show current repo/worktree status")]
     Status,
 }
@@ -213,17 +196,6 @@ fn main() {
             ConfigCommands::Validate => ConfigCommand::validate(),
             ConfigCommands::Init => ConfigCommand::init(),
         },
-
-        Commands::Template { command } => match command {
-            TemplateCommands::List => TemplateCommand::list(),
-            TemplateCommands::Create { name, description } => {
-                TemplateCommand::create(name, description)
-            }
-            TemplateCommands::Show { name } => TemplateCommand::show(name),
-            TemplateCommands::Delete { name } => TemplateCommand::delete(name),
-        },
-
-        Commands::Completions { shell } => CompletionsCommand::generate(shell),
 
         Commands::Status => StatusCommand::execute(),
     };

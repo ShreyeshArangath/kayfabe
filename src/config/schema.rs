@@ -10,8 +10,6 @@ pub struct Config {
     #[serde(default)]
     pub agents: HashMap<String, AgentConfig>,
     #[serde(default)]
-    pub templates: TemplatesConfig,
-    #[serde(default)]
     pub ui: UIConfig,
 }
 
@@ -31,7 +29,6 @@ impl Default for Config {
             defaults: DefaultsConfig::default(),
             worktree: WorktreeConfig::default(),
             agents,
-            templates: TemplatesConfig::default(),
             ui: UIConfig::default(),
         }
     }
@@ -90,12 +87,6 @@ pub struct AgentConfig {
     #[serde(default = "default_template")]
     pub template: String,
     pub location: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct TemplatesConfig {
-    pub local_path: Option<String>,
-    pub remote_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

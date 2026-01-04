@@ -2,7 +2,7 @@
 
 <img src="assets/logo.png" alt="kayfabe logo" width="400" />
 
-> **AI-Assisted Development CLI** — Zero-friction worktree management + agent configuration for Claude Code, Cursor, and Windsurf
+> **AI-Assisted Development CLI** — Zero-friction worktree management + agent configuration for Windsurf
 
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange?logo=rust)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
@@ -14,11 +14,11 @@
 
 **Kayfabe** (wrestling term): The art of maintaining the illusion that staged events are real. In AI-assisted development, we do the same—we maintain the fiction that AI agents deeply understand your codebase by giving them the context they need to perform convincingly.
 
-Kayfabe is a CLI that automates the setup and management of isolated development environments for AI agents (Claude, Cursor, Windsurf). It handles worktree creation, agent configuration, IDE launching, and workspace hygiene—so you can focus on shipping code with AI, not managing environments.
+Kayfabe is a CLI that automates the setup and management of isolated development environments for AI agents (Windsurf). It handles worktree creation, agent configuration, IDE launching, and workspace hygiene—so you can focus on shipping code with AI, not managing environments.
 
 **Why it matters:**
 - 🎯 **One command** to set up a fully configured AI-ready worktree
-- 🤖 **Agent-aware** — auto-generates `CLAUDE.md`, `.cursorrules`, `.windsurfrules`
+- 🤖 **Agent-aware** — auto-generates `.windsurfrules`
 - 🔀 **Multi-agent workflows** — parallel AI sessions on isolated branches
 - ⚡ **Zero configuration** — smart defaults for Rust, Python, TypeScript, and more
 - 🧹 **Intelligent cleanup** — staleness detection keeps your worktrees tidy
@@ -41,13 +41,21 @@ Kayfabe is a CLI that automates the setup and management of isolated development
 brew install ShreyeshArangath/tap/kayfabe
 ```
 
+### Setup Global Agents
+
+```bash
+kayfabe install
+```
+
+This sets up AI agent configurations globally so they work across all your kayfabe-managed projects.
+
 ### Get Started
 
 ```bash
-kayfabe init ~/projects/my-repo --agent all && kayfabe worktree create feature-auth --open cursor
+kayfabe init ~/projects/my-repo && kayfabe worktree create feature-auth --open windsurf
 ```
 
-That's it. Your IDE opens with a fully configured worktree, agent configs, and project context ready to go.
+That's it. Your IDE opens with a fully configured worktree and project context ready to go.
 
 ---
 
@@ -62,7 +70,7 @@ my-repo/
 ├── main/                    # Main checkout (anchor point)
 │   ├── src/
 │   ├── Cargo.toml
-│   └── CLAUDE.md           # Auto-generated agent config
+│   └── .windsurfrules       # Auto-generated agent config
 ├── wt/                      # Worktree directory
 │   ├── feature-auth/        # Isolated feature branch
 │   ├── feature-api/         # Another feature
@@ -83,15 +91,45 @@ Kayfabe auto-generates context files for AI assistants:
 
 | File | Agent | Purpose |
 |------|-------|---------|
-| `CLAUDE.md` | Claude Code | Project overview, commands, architecture |
-| `.cursorrules` | Cursor | Code style, conventions, testing guidelines |
-| `.windsurfrules` | Windsurf | Similar to Cursor rules |
+| `.windsurfrules` | Windsurf | Project overview, commands, architecture |
 
 These are generated from your codebase — no manual editing needed.
 
 ---
 
 ## Commands
+
+### `kayfabe install` — Install Global Agent Configurations
+
+Set up AI agent configurations globally for use across all kayfabe-managed projects.
+
+```bash
+kayfabe install [OPTIONS]
+```
+
+**Options:**
+- `--non-interactive` — Skip interactive selection, install all agents
+- `--agents <AGENTS>` — Specify agents to install: `windsurf`
+
+**Examples:**
+```bash
+# Interactive mode (recommended)
+kayfabe install
+
+# Install all agents non-interactively
+kayfabe install --non-interactive
+
+# Install specific agents
+kayfabe install --agents windsurf
+```
+
+**What it does:**
+1. Installs global agent configurations to appropriate locations:
+   - Windsurf: `.windsurfrules` in project root
+2. Updates global config with installed agents
+3. Configurations work across all kayfabe-managed projects
+
+---
 
 ### `kayfabe init` — Set Up Your Repository
 
@@ -102,7 +140,7 @@ kayfabe init [PATH] [OPTIONS]
 ```
 
 **Options:**
-- `--agent <AGENT>` — Configure for specific agent: `claude`, `cursor`, `windsurf`, or `all`
+- `--agent <AGENT>` — Configure for specific agent: `windsurf`
 - `--no-convert` — Don't convert to worktree layout (use existing structure)
 
 **Examples:**
@@ -110,11 +148,11 @@ kayfabe init [PATH] [OPTIONS]
 # Initialize current directory (worktree layout only)
 kayfabe init
 
-# Initialize with all agent configurations
-kayfabe init --agent all
+# Initialize with Windsurf configuration
+kayfabe init --agent windsurf
 
-# Initialize specific repo for Cursor only
-kayfabe init ~/projects/myapp --agent cursor
+# Initialize specific repo for Windsurf
+kayfabe init ~/projects/myapp --agent windsurf
 ```
 
 **What it does:**
@@ -134,17 +172,17 @@ kayfabe worktree create <NAME> [OPTIONS]
 
 **Options:**
 - `--base <BRANCH>` — Base branch (default: `main`)
-- `--open <IDE>` — Launch IDE: `idea`, `cursor`, `windsurf`, `claude`, `code`
+- `--open <IDE>` — Launch IDE: `idea`, `windsurf`, `code`
 - `--no-open` — Don't launch any IDE
 - `--from-ticket <ID>` — Name from ticket ID (e.g., `ENG-1234`)
 
 **Examples:**
 ```bash
-# Create and open in Cursor
-kayfabe worktree create feature-auth --open cursor
+# Create and open in Windsurf
+kayfabe worktree create feature-auth --open windsurf
 
 # Create from ticket ID
-kayfabe worktree create --from-ticket ENG-1234 --open claude
+kayfabe worktree create --from-ticket ENG-1234 --open windsurf
 
 # Create without opening IDE
 kayfabe worktree create spike-redis --no-open
@@ -248,7 +286,7 @@ kayfabe worktree switch <NAME> [OPTIONS]
 kayfabe worktree switch feature-auth
 
 # Switch and open in IDE
-kayfabe worktree switch feature-api --open cursor
+kayfabe worktree switch feature-api --open windsurf
 ```
 
 ---
@@ -262,18 +300,15 @@ kayfabe config generate [OPTIONS]
 ```
 
 **Options:**
-- `--agent <AGENT>` — Target agent: `claude`, `cursor`, `windsurf`, or `all`
+- `--agent <AGENT>` — Target agent: `windsurf`
 - `--analyze` — Analyze codebase for smart defaults
 - `--output <PATH>` — Custom output path
 - `--force` — Overwrite existing files
 
 **Examples:**
 ```bash
-# Generate all agent configs with analysis
-kayfabe config generate --agent all --analyze
-
-# Generate Cursor rules only
-kayfabe config generate --agent cursor
+# Generate Windsurf rules only
+kayfabe config generate --agent windsurf
 ```
 
 #### Show current configuration
@@ -284,11 +319,8 @@ kayfabe config show [AGENT]
 
 **Examples:**
 ```bash
-# Show all agent configs
-kayfabe config show
-
-# Show Cursor rules only
-kayfabe config show cursor
+# Show Windsurf rules only
+kayfabe config show windsurf
 ```
 
 #### Edit configuration
@@ -331,8 +363,6 @@ Worktrees:
   feature-api       → feature-api (0 commits)
 
 Agent Configs:
-  ✓ CLAUDE.md
-  ✓ .cursorrules
   ✓ .windsurfrules
 
 Configuration:
@@ -350,7 +380,7 @@ Set your personal defaults:
 
 ```toml
 [defaults]
-ide = "cursor"                    # Default IDE to launch
+ide = "windsurf"                    # Default IDE to launch
 base_branch = "main"              # Default base branch
 auto_fetch = true                 # Fetch refs before creating worktree
 
@@ -360,12 +390,6 @@ naming = "branch"                 # "branch", "ticket", or "custom"
 stale_days = 14                   # Days of inactivity before considered stale
 auto_cleanup = false              # Prompt to cleanup stale worktrees on `list`
 protect_unmerged = true           # Never auto-cleanup worktrees with unmerged work
-
-[agents.claude]
-enabled = true
-
-[agents.cursor]
-enabled = true
 
 [agents.windsurf]
 enabled = true
@@ -389,7 +413,7 @@ type = "rust"                     # Auto-detected or manual
 base_branch = "develop"           # Override default
 
 [agents]
-preferred = ["claude", "cursor"]
+preferred = ["windsurf"]
 
 [hooks]
 post_create = ["./scripts/setup-env.sh"]
@@ -403,7 +427,7 @@ post_create = ["./scripts/setup-env.sh"]
 
 ```bash
 # Start a new feature
-kayfabe worktree create feature-auth --open cursor
+kayfabe worktree create feature-auth --open windsurf
 
 # Work in isolation
 # ... make commits ...
@@ -417,11 +441,11 @@ kayfabe worktree remove feature-auth --delete-branch
 ### Flow 2: Multi-Agent Collaboration
 
 ```bash
-# Agent 1: Claude Code for architecture
-kayfabe worktree create feature-auth-design --open claude
+# Agent 1: Windsurf for architecture
+kayfabe worktree create feature-auth-design --open windsurf
 
-# Agent 2: Cursor for implementation (based on design)
-kayfabe worktree create feature-auth-impl --base feature-auth-design --open cursor
+# Agent 2: Windsurf for implementation (based on design)
+kayfabe worktree create feature-auth-impl --base feature-auth-design --open windsurf
 
 # Agent 3: Windsurf for testing
 kayfabe worktree create feature-auth-test --base feature-auth-impl --open windsurf
@@ -490,11 +514,8 @@ kayfabe init /path/to/repo
 Kayfabe looks for IDEs in your PATH. Make sure your IDE is installed and accessible:
 
 ```bash
-# Check if Cursor is installed
-which cursor
-
-# Add to PATH if needed
-export PATH="/Applications/Cursor.app/Contents/MacOS:$PATH"
+# Check if Windsurf is installed
+which windsurf
 ```
 
 ### "Worktree already exists"

@@ -1,20 +1,6 @@
-pub mod claude;
-pub mod cursor;
-pub mod detector;
-pub mod windsurf;
+pub mod installer;
 
-pub use claude::ClaudeGenerator;
-pub use cursor::CursorGenerator;
-pub use detector::ProjectDetector;
-pub use windsurf::WindsurfGenerator;
-
-use crate::error::Result;
-use std::path::Path;
-
-pub trait AgentGenerator {
-    fn generate(&self, context: &ProjectContext) -> Result<String>;
-    fn file_path(&self) -> &str;
-}
+pub use installer::AgentInstaller;
 
 #[derive(Debug, Clone)]
 pub struct ProjectContext {
@@ -25,10 +11,4 @@ pub struct ProjectContext {
     pub lint_cmd: Option<String>,
     pub is_workspace: bool,
     pub workspace_members: Vec<String>,
-}
-
-impl ProjectContext {
-    pub fn detect(path: &Path) -> Result<Self> {
-        ProjectDetector::detect(path)
-    }
 }

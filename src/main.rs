@@ -1,8 +1,5 @@
 use clap::{Parser, Subcommand};
-use clap_complete::Shell;
-use kayfabe::cli::{
-    CompletionsCommand, ConfigCommand, InitCommand, StatusCommand, TemplateCommand, WorktreeCommand,
-};
+use kayfabe::cli::{ConfigCommand, InitCommand, InstallCommand, StatusCommand, WorktreeCommand};
 use std::path::PathBuf;
 use std::process;
 
@@ -33,11 +30,20 @@ enum Commands {
         #[arg(long, help = "Don't convert to worktree layout")]
         no_convert: bool,
 
-        #[arg(
-            long,
-            help = "Configure for specific agent [claude|cursor|windsurf|all]"
-        )]
+        #[arg(long, help = "Configure for specific agent [windsurf]")]
         agent: Option<String>,
+    },
+
+    #[command(about = "Install kayfabe agents globally")]
+    Install {
+        #[arg(help = "Target directory (default: current directory)")]
+        path: Option<PathBuf>,
+
+        #[arg(long, help = "Non-interactive mode")]
+        non_interactive: bool,
+
+        #[arg(long, help = "Agents to install [windsurf]")]
+        agents: Option<Vec<String>>,
     },
 
     #[command(about = "Manage worktrees")]
@@ -51,19 +57,6 @@ enum Commands {
         #[command(subcommand)]
         command: ConfigCommands,
     },
-
-    #[command(about = "Manage workflow templates")]
-    Template {
-        #[command(subcommand)]
-        command: TemplateCommands,
-    },
-
-    #[command(about = "Generate shell completions")]
-    Completions {
-        #[arg(help = "Shell to generate completions for [bash|zsh|fish|powershell]")]
-        shell: Shell,
-    },
-
     #[command(about = "Show current repo/worktree status")]
     Status,
 }
@@ -78,7 +71,7 @@ enum WorktreeCommands {
         #[arg(long, help = "Base branch (default: main)")]
         base: Option<String>,
 
-        #[arg(long, help = "Launch IDE [cursor|windsurf|idea|code|claude]")]
+        #[arg(long, help = "Launch IDE [windsurf|idea|code]")]
         open: Option<String>,
 
         #[arg(long, help = "Don't launch any IDE")]
@@ -118,24 +111,15 @@ enum WorktreeCommands {
 
 #[derive(Subcommand)]
 enum ConfigCommands {
-    #[command(about = "Generate agent configuration files")]
-    Generate {
-        #[arg(long, help = "Target agent [claude|cursor|windsurf|all]")]
-        agent: Option<String>,
-
-        #[arg(long, help = "Analyze codebase for smart defaults")]
-        analyze: bool,
-    },
-
     #[command(about = "Show current configuration")]
     Show {
-        #[arg(help = "Agent to show [claude|cursor|windsurf]")]
+        #[arg(help = "Agent to show [windsurf]")]
         agent: Option<String>,
     },
 
     #[command(about = "Edit configuration in editor")]
     Edit {
-        #[arg(help = "Agent to edit [claude|cursor|windsurf]")]
+        #[arg(help = "Agent to edit [windsurf]")]
         agent: Option<String>,
     },
 
@@ -179,19 +163,15 @@ fn main() {
     let result = match cli.command {
         Commands::Init {
             path,
-            no_convert,
-            agent,
-        } => {
-            if no_convert {
-                InitCommand::execute(path)
-            } else {
-                let result = InitCommand::execute(path);
-                if result.is_ok() && agent.is_some() {
-                    let _ = ConfigCommand::generate(agent, true);
-                }
-                result
-            }
-        }
+            no_convert: _,
+            agent: _,
+        } => InitCommand::execute(path),
+
+        Commands::Install {
+            path,
+            non_interactive,
+            agents,
+        } => InstallCommand::execute(path, non_interactive, agents),
 
         Commands::Worktree { command } => match command {
             WorktreeCommands::Create {
@@ -211,23 +191,11 @@ fn main() {
         },
 
         Commands::Config { command } => match command {
-            ConfigCommands::Generate { agent, analyze } => ConfigCommand::generate(agent, analyze),
             ConfigCommands::Show { agent } => ConfigCommand::show(agent),
             ConfigCommands::Edit { agent } => ConfigCommand::edit(agent),
             ConfigCommands::Validate => ConfigCommand::validate(),
             ConfigCommands::Init => ConfigCommand::init(),
         },
-
-        Commands::Template { command } => match command {
-            TemplateCommands::List => TemplateCommand::list(),
-            TemplateCommands::Create { name, description } => {
-                TemplateCommand::create(name, description)
-            }
-            TemplateCommands::Show { name } => TemplateCommand::show(name),
-            TemplateCommands::Delete { name } => TemplateCommand::delete(name),
-        },
-
-        Commands::Completions { shell } => CompletionsCommand::generate(shell),
 
         Commands::Status => StatusCommand::execute(),
     };

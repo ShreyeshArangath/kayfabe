@@ -33,8 +33,7 @@ impl InitCommand {
 
         println!("{}", style("Creating project configuration...").cyan());
         let config = ProjectConfig::default();
-        let repo_after = GitRepo::discover(&path)?;
-        config.save(repo_after.layout_root())?;
+        config.save(repo.layout_root())?;
         println!("{}", style("✓ Created .kayfabe/config.toml").green());
 
         println!(

@@ -10,8 +10,6 @@ pub struct Config {
     #[serde(default)]
     pub agents: HashMap<String, AgentConfig>,
     #[serde(default)]
-    pub templates: TemplatesConfig,
-    #[serde(default)]
     pub ui: UIConfig,
 }
 
@@ -19,27 +17,11 @@ impl Default for Config {
     fn default() -> Self {
         let mut agents = HashMap::new();
         agents.insert(
-            "claude".to_string(),
-            AgentConfig {
-                enabled: true,
-                template: "default".to_string(),
-                location: "CLAUDE.md".to_string(),
-            },
-        );
-        agents.insert(
-            "cursor".to_string(),
-            AgentConfig {
-                enabled: true,
-                template: "default".to_string(),
-                location: ".cursorrules".to_string(),
-            },
-        );
-        agents.insert(
             "windsurf".to_string(),
             AgentConfig {
                 enabled: true,
                 template: "default".to_string(),
-                location: ".windsurf/rules/rules.md".to_string(),
+                location: ".windsurfrules".to_string(),
             },
         );
 
@@ -47,7 +29,6 @@ impl Default for Config {
             defaults: DefaultsConfig::default(),
             worktree: WorktreeConfig::default(),
             agents,
-            templates: TemplatesConfig::default(),
             ui: UIConfig::default(),
         }
     }
@@ -108,12 +89,6 @@ pub struct AgentConfig {
     pub location: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct TemplatesConfig {
-    pub local_path: Option<String>,
-    pub remote_url: Option<String>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UIConfig {
     #[serde(default = "default_true")]
@@ -135,7 +110,7 @@ impl Default for UIConfig {
 }
 
 fn default_ide() -> String {
-    "cursor".to_string()
+    "windsurf".to_string()
 }
 
 fn default_base_branch() -> String {

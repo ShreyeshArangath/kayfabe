@@ -111,7 +111,6 @@ impl GitRepo {
         std::fs::create_dir(&self.root)?;
         std::fs::rename(&tmp_move, self.root.join("main"))?;
         std::fs::create_dir(self.root.join("wt"))?;
-
         Ok(())
     }
 

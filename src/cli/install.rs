@@ -55,7 +55,9 @@ impl InstallCommand {
 
         println!(
             "{}",
-            style("✓ Global agent installation complete!").green().bold()
+            style("✓ Global agent installation complete!")
+                .green()
+                .bold()
         );
         Ok(())
     }

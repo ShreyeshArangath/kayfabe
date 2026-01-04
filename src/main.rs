@@ -34,10 +34,7 @@ enum Commands {
         #[arg(long, help = "Don't convert to worktree layout")]
         no_convert: bool,
 
-        #[arg(
-            long,
-            help = "Configure for specific agent [windsurf]"
-        )]
+        #[arg(long, help = "Configure for specific agent [windsurf]")]
         agent: Option<String>,
     },
 
@@ -185,9 +182,7 @@ fn main() {
             path,
             no_convert: _,
             agent: _,
-        } => {
-            InitCommand::execute(path)
-        }
+        } => InitCommand::execute(path),
 
         Commands::Install {
             path,

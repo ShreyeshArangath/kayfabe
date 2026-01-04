@@ -39,9 +39,7 @@ impl ConfigCommand {
         let current_dir = std::env::current_dir()?;
         let repo = GitRepo::discover(&current_dir)?;
 
-        let files = vec![
-            (".windsurfrules", "Windsurf"),
-        ];
+        let files = vec![(".windsurfrules", "Windsurf")];
 
         println!("{}", style("Validating agent configurations...").bold());
         println!();

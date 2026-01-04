@@ -36,7 +36,6 @@ When you create a worktree, you get a completely isolated environment:
 - Easy to merge back to main when done
 "#;
 
-
 pub const WINDSURF_TEMPLATE: &str = r#"# Kayfabe Windsurf Rules
 
 This project uses kayfabe for AI-assisted development with git worktree management.

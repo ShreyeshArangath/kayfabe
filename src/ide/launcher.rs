@@ -40,14 +40,10 @@ pub struct IDELauncher;
 
 impl IDELauncher {
     pub fn detect_available() -> Vec<IDE> {
-        vec![
-            IDE::Windsurf,
-            IDE::Idea,
-            IDE::Code,
-        ]
-        .into_iter()
-        .filter(|ide| ide.is_available())
-        .collect()
+        vec![IDE::Windsurf, IDE::Idea, IDE::Code]
+            .into_iter()
+            .filter(|ide| ide.is_available())
+            .collect()
     }
 
     pub fn launch(ide: IDE, path: &Path) -> Result<()> {

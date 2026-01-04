@@ -14,8 +14,6 @@ impl AgentInstaller {
         }
     }
 
-
-
     fn install_windsurf_global(target_dir: &Path) -> Result<()> {
         let local_path = target_dir.join(".windsurfrules");
         let content = Self::generate_windsurf_config()?;
@@ -24,8 +22,6 @@ impl AgentInstaller {
         println!("✓ Windsurf agent installed locally");
         Ok(())
     }
-
-
 
     fn generate_windsurf_config() -> Result<String> {
         Ok(crate::agents::templates::WINDSURF_TEMPLATE.to_string())

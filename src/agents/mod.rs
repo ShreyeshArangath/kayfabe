@@ -3,7 +3,6 @@ pub mod templates;
 
 pub use installer::AgentInstaller;
 
-
 #[derive(Debug, Clone)]
 pub struct ProjectContext {
     pub name: String,

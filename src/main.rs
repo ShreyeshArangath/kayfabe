@@ -131,15 +131,6 @@ enum WorktreeCommands {
 
 #[derive(Subcommand)]
 enum ConfigCommands {
-    #[command(about = "Generate agent configuration files")]
-    Generate {
-        #[arg(long, help = "Target agent [claude|cursor|windsurf|all]")]
-        agent: Option<String>,
-
-        #[arg(long, help = "Analyze codebase for smart defaults")]
-        analyze: bool,
-    },
-
     #[command(about = "Show current configuration")]
     Show {
         #[arg(help = "Agent to show [claude|cursor|windsurf]")]
@@ -192,18 +183,10 @@ fn main() {
     let result = match cli.command {
         Commands::Init {
             path,
-            no_convert,
-            agent,
+            no_convert: _,
+            agent: _,
         } => {
-            if no_convert {
-                InitCommand::execute(path)
-            } else {
-                let result = InitCommand::execute(path);
-                if result.is_ok() && agent.is_some() {
-                    let _ = ConfigCommand::generate(agent, true);
-                }
-                result
-            }
+            InitCommand::execute(path)
         }
 
         Commands::Install {
@@ -230,7 +213,6 @@ fn main() {
         },
 
         Commands::Config { command } => match command {
-            ConfigCommands::Generate { agent, analyze } => ConfigCommand::generate(agent, analyze),
             ConfigCommands::Show { agent } => ConfigCommand::show(agent),
             ConfigCommands::Edit { agent } => ConfigCommand::edit(agent),
             ConfigCommands::Validate => ConfigCommand::validate(),

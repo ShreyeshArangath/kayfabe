@@ -1,6 +1,3 @@
-use crate::agents::{
-    AgentGenerator, ClaudeGenerator, CursorGenerator, ProjectContext, WindsurfGenerator,
-};
 use crate::config::GlobalConfig;
 use crate::error::Result;
 use crate::git::GitRepo;
@@ -9,76 +6,6 @@ use console::style;
 pub struct ConfigCommand;
 
 impl ConfigCommand {
-    pub fn generate(agent: Option<String>, analyze: bool) -> Result<()> {
-        let current_dir = std::env::current_dir()?;
-        let repo = GitRepo::discover(&current_dir)?;
-
-        let context = if analyze {
-            println!("{}", style("Analyzing project...").cyan());
-            ProjectContext::detect(repo.root())?
-        } else {
-            ProjectContext {
-                name: repo
-                    .root()
-                    .file_name()
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_string(),
-                project_type: "unknown".to_string(),
-                build_cmd: None,
-                test_cmd: None,
-                lint_cmd: None,
-                is_workspace: false,
-                workspace_members: Vec::new(),
-            }
-        };
-
-        let agents_to_generate = match agent.as_deref() {
-            Some("claude") => vec!["claude"],
-            Some("cursor") => vec!["cursor"],
-            Some("windsurf") => vec!["windsurf"],
-            Some("all") | None => vec!["claude", "cursor", "windsurf"],
-            Some(other) => {
-                return Err(crate::error::KayfabeError::Other(format!(
-                    "Unknown agent: {}. Valid options: claude, cursor, windsurf, all",
-                    other
-                )));
-            }
-        };
-
-        for agent_name in agents_to_generate {
-            let (generator, file_path): (Box<dyn AgentGenerator>, &str) = match agent_name {
-                "claude" => (Box::new(ClaudeGenerator), ClaudeGenerator.file_path()),
-                "cursor" => (Box::new(CursorGenerator), CursorGenerator.file_path()),
-                "windsurf" => (Box::new(WindsurfGenerator), WindsurfGenerator.file_path()),
-                _ => continue,
-            };
-
-            let content = generator.generate(&context)?;
-            let target_path = repo.root().join(file_path);
-
-            if let Some(parent) = target_path.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-
-            std::fs::write(&target_path, content)?;
-            println!(
-                "{} {}",
-                style("✓ Generated:").green(),
-                style(file_path).cyan()
-            );
-        }
-
-        println!(
-            "\n{}",
-            style("Agent configurations generated successfully!")
-                .bold()
-                .green()
-        );
-
-        Ok(())
-    }
-
     pub fn show(agent: Option<String>) -> Result<()> {
         let current_dir = std::env::current_dir()?;
         let repo = GitRepo::discover(&current_dir)?;
@@ -207,7 +134,7 @@ impl ConfigCommand {
         let path = repo.root().join(file);
         if !path.exists() {
             return Err(crate::error::KayfabeError::Other(format!(
-                "Configuration file not found: {}. Run 'kayfabe config generate' first.",
+                "Configuration file not found: {}.",
                 file
             )));
         }

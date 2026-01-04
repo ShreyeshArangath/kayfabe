@@ -1,11 +1,14 @@
 pub mod claude;
 pub mod cursor;
 pub mod detector;
+pub mod installer;
+pub mod templates;
 pub mod windsurf;
 
 pub use claude::ClaudeGenerator;
 pub use cursor::CursorGenerator;
 pub use detector::ProjectDetector;
+pub use installer::AgentInstaller;
 pub use windsurf::WindsurfGenerator;
 
 use crate::error::Result;

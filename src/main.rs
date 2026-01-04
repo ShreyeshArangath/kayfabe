@@ -1,7 +1,8 @@
 use clap::{Parser, Subcommand};
 use clap_complete::Shell;
 use kayfabe::cli::{
-    CompletionsCommand, ConfigCommand, InitCommand, StatusCommand, TemplateCommand, WorktreeCommand,
+    CompletionsCommand, ConfigCommand, InitCommand, InstallCommand, StatusCommand, TemplateCommand,
+    WorktreeCommand,
 };
 use std::path::PathBuf;
 use std::process;
@@ -38,6 +39,18 @@ enum Commands {
             help = "Configure for specific agent [claude|cursor|windsurf|all]"
         )]
         agent: Option<String>,
+    },
+
+    #[command(about = "Install kayfabe agents globally")]
+    Install {
+        #[arg(help = "Target directory (default: current directory)")]
+        path: Option<PathBuf>,
+
+        #[arg(long, help = "Non-interactive mode")]
+        non_interactive: bool,
+
+        #[arg(long, help = "Agents to install [claude|cursor|windsurf]")]
+        agents: Option<Vec<String>>,
     },
 
     #[command(about = "Manage worktrees")]
@@ -192,6 +205,12 @@ fn main() {
                 result
             }
         }
+
+        Commands::Install {
+            path,
+            non_interactive,
+            agents,
+        } => InstallCommand::execute(path, non_interactive, agents),
 
         Commands::Worktree { command } => match command {
             WorktreeCommands::Create {

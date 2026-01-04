@@ -41,13 +41,21 @@ cargo install --git https://github.com/ShreyeshArangath/kayfabe.git
 brew install ShreyeshArangath/tap/kayfabe
 ```
 
+### Setup Global Agents
+
+```bash
+kayfabe install
+```
+
+This sets up AI agent configurations globally so they work across all your kayfabe-managed projects.
+
 ### Get Started
 
 ```bash
-kayfabe init ~/projects/my-repo --agent all && kayfabe worktree create feature-auth --open cursor
+kayfabe init ~/projects/my-repo && kayfabe worktree create feature-auth --open cursor
 ```
 
-That's it. Your IDE opens with a fully configured worktree, agent configs, and project context ready to go.
+That's it. Your IDE opens with a fully configured worktree and project context ready to go.
 
 ---
 
@@ -92,6 +100,40 @@ These are generated from your codebase — no manual editing needed.
 ---
 
 ## Commands
+
+### `kayfabe install` — Install Global Agent Configurations
+
+Set up AI agent configurations globally for use across all kayfabe-managed projects.
+
+```bash
+kayfabe install [OPTIONS]
+```
+
+**Options:**
+- `--non-interactive` — Skip interactive selection, install all agents
+- `--agents <AGENTS>` — Specify agents to install: `claude`, `cursor`, `windsurf`
+
+**Examples:**
+```bash
+# Interactive mode (recommended)
+kayfabe install
+
+# Install all agents non-interactively
+kayfabe install --non-interactive
+
+# Install specific agents
+kayfabe install --agents claude cursor
+```
+
+**What it does:**
+1. Installs global agent configurations to appropriate locations:
+   - Claude: `~/.claude/CLAUDE.md` and local `CLAUDE.md`
+   - Cursor: `.cursorrules` in project root
+   - Windsurf: `.windsurfrules` in project root
+2. Updates global config with installed agents
+3. Configurations work across all kayfabe-managed projects
+
+---
 
 ### `kayfabe init` — Set Up Your Repository
 

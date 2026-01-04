@@ -941,6 +941,7 @@ dependencies = [
  "indicatif",
  "reqwest",
  "serde",
+ "tempfile",
  "tera",
  "thiserror 2.0.17",
  "tokio",

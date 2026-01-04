@@ -15,7 +15,7 @@ impl InitCommand {
             style("Initializing repository for AI-assisted development...").bold()
         );
 
-        let mut repo = GitRepo::discover(&path)?;
+        let repo = GitRepo::discover(&path)?;
 
         if repo.is_worktree_layout() {
             println!(

@@ -3,8 +3,6 @@ pub mod templates;
 
 pub use installer::AgentInstaller;
 
-use crate::error::Result;
-use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct ProjectContext {

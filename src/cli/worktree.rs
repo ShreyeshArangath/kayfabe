@@ -15,7 +15,7 @@ impl WorktreeCommand {
         no_open: bool,
     ) -> Result<()> {
         let current_dir = std::env::current_dir()?;
-        let mut repo = GitRepo::discover(&current_dir).map_err(|e| {
+        let repo = GitRepo::discover(&current_dir).map_err(|e| {
             crate::error::KayfabeError::Other(format!(
                 "{}\n\nHint: Run 'kayfabe init' first to set up the repository",
                 e

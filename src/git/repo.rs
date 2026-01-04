@@ -1,4 +1,5 @@
 use crate::error::{KayfabeError, Result};
+use crate::git::KayfabeRoot;
 use git2::{BranchType, Repository};
 use rand::Rng;
 use std::path::{Path, PathBuf};
@@ -11,11 +12,11 @@ pub struct GitRepo {
 
 impl GitRepo {
     pub fn discover(path: &Path) -> Result<Self> {
-        let is_layout_root = Self::is_worktree_layout_root(path);
-        let discover_path = if is_layout_root {
-            path.join("main")
+        let layout_root = KayfabeRoot::discover(path)?;
+        let discover_path = if Self::is_worktree_layout_root(&layout_root) {
+            layout_root.join("main")
         } else {
-            path.to_path_buf()
+            layout_root.clone()
         };
 
         // Try to discover from the path, or if that fails, try to open it directly
@@ -36,12 +37,6 @@ impl GitRepo {
             .workdir()
             .ok_or_else(|| KayfabeError::Other("Bare repository not supported".to_string()))?
             .to_path_buf();
-
-        let layout_root = if is_layout_root {
-            path.to_path_buf()
-        } else {
-            root.clone()
-        };
 
         Ok(Self {
             repo,
@@ -203,5 +198,33 @@ impl GitRepo {
             .output()?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_discover_from_worktree_subdir_uses_layout_root() {
+        let temp_dir = TempDir::new().unwrap();
+        let layout_root = temp_dir.path().canonicalize().unwrap();
+
+        fs::create_dir(layout_root.join(".kayfabe")).unwrap();
+        fs::create_dir(layout_root.join("wt")).unwrap();
+
+        let main_dir = layout_root.join("main");
+        fs::create_dir(&main_dir).unwrap();
+        Repository::init(&main_dir).unwrap();
+
+        let subdir = layout_root.join("wt").join("feature").join("src");
+        fs::create_dir_all(&subdir).unwrap();
+
+        let repo = GitRepo::discover(&subdir).unwrap();
+        assert_eq!(repo.layout_root(), layout_root.as_path());
+        assert_eq!(repo.root(), main_dir.as_path());
+        assert!(repo.is_worktree_layout());
     }
 }

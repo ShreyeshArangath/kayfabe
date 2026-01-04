@@ -67,6 +67,19 @@ mod tests {
     }
 
     #[test]
+    fn test_discover_from_worktree_subdir() {
+        let temp_dir = TempDir::new().unwrap();
+        let root = temp_dir.path().canonicalize().unwrap();
+
+        fs::create_dir(root.join(".kayfabe")).unwrap();
+        fs::create_dir_all(root.join("wt").join("feature").join("src")).unwrap();
+
+        let subdir = root.join("wt").join("feature").join("src");
+        let discovered = KayfabeRoot::discover(&subdir).unwrap();
+        assert_eq!(discovered, root);
+    }
+
+    #[test]
     fn test_discover_not_in_kayfabe_repo() {
         let temp_dir = TempDir::new().unwrap();
         let result = KayfabeRoot::discover(temp_dir.path());

@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
-use kayfabe::cli::{ConfigCommand, InitCommand, InstallCommand, StatusCommand, WorktreeCommand};
+use kayfabe::cli::{
+    ConfigCommand, InitCommand, InstallCommand, RootCommand, StatusCommand, WorktreeCommand,
+};
 use std::path::PathBuf;
 use std::process;
 
@@ -59,6 +61,9 @@ enum Commands {
     },
     #[command(about = "Show current repo/worktree status")]
     Status,
+
+    #[command(about = "Print the detected kayfabe root")]
+    Root,
 }
 
 #[derive(Subcommand)]
@@ -198,6 +203,7 @@ fn main() {
         },
 
         Commands::Status => StatusCommand::execute(),
+        Commands::Root => RootCommand::execute(),
     };
 
     if let Err(e) = result {

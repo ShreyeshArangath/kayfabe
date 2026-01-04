@@ -1,23 +1,57 @@
 use crate::error::{KayfabeError, Result};
 use git2::{BranchType, Repository};
+use rand::Rng;
 use std::path::{Path, PathBuf};
 
 pub struct GitRepo {
     repo: Repository,
     root: PathBuf,
+    layout_root: PathBuf,
 }
 
 impl GitRepo {
     pub fn discover(path: &Path) -> Result<Self> {
-        let repo = Repository::discover(path)
-            .map_err(|_| KayfabeError::NotARepository(path.display().to_string()))?;
+        let is_layout_root = Self::is_worktree_layout_root(path);
+        let discover_path = if is_layout_root {
+            path.join("main")
+        } else {
+            path.to_path_buf()
+        };
+
+        // Try to discover from the path, or if that fails, try to open it directly
+        let repo = if discover_path.join(".git").exists() {
+            Repository::open(&discover_path).or_else(|_| Repository::discover(&discover_path))
+        } else {
+            Repository::discover(&discover_path)
+        }
+        .map_err(|e| {
+            KayfabeError::Other(format!(
+                "Failed to open repository at {:?}: {}",
+                path.display(),
+                e
+            ))
+        })?;
 
         let root = repo
             .workdir()
             .ok_or_else(|| KayfabeError::Other("Bare repository not supported".to_string()))?
             .to_path_buf();
 
-        Ok(Self { repo, root })
+        let layout_root = if is_layout_root {
+            path.to_path_buf()
+        } else {
+            root.clone()
+        };
+
+        Ok(Self {
+            repo,
+            root,
+            layout_root,
+        })
+    }
+
+    fn is_worktree_layout_root(path: &Path) -> bool {
+        path.join("main").is_dir() && path.join("wt").is_dir() && path.join(".kayfabe").is_dir()
     }
 
     pub fn get_default_branch(&self) -> Result<String> {
@@ -35,8 +69,12 @@ impl GitRepo {
         &self.root
     }
 
+    pub fn layout_root(&self) -> &Path {
+        &self.layout_root
+    }
+
     pub fn is_worktree_layout(&self) -> bool {
-        self.root.join("main").is_dir() && self.root.join("wt").is_dir()
+        self.layout_root.join("main").is_dir() && self.layout_root.join("wt").is_dir()
     }
 
     pub fn convert_to_worktree_layout(&self) -> Result<()> {
@@ -44,26 +82,35 @@ impl GitRepo {
             return Ok(());
         }
 
-        let main_dir = self.root.join("main");
-        let wt_dir = self.root.join("wt");
-
-        std::fs::create_dir_all(&wt_dir)?;
-
-        for entry in std::fs::read_dir(&self.root)? {
-            let entry = entry?;
-            let path = entry.path();
-            let name = path.file_name().unwrap().to_string_lossy();
-
-            if name == ".git" || name == "main" || name == "wt" {
-                continue;
-            }
-
-            let dest = main_dir.join(name.as_ref());
-            if let Some(parent) = dest.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            std::fs::rename(&path, &dest)?;
+        if (self.root.join("main")).is_dir() {
+            return Err(KayfabeError::Other(
+                "Repo is a git checkout AND already has a main/ dir. Refusing to guess."
+                    .to_string(),
+            ));
         }
+
+        let parent = self
+            .root
+            .parent()
+            .ok_or_else(|| KayfabeError::Other("Cannot get parent directory".to_string()))?;
+
+        let repo_name = self
+            .root
+            .file_name()
+            .ok_or_else(|| KayfabeError::Other("Cannot get repo name".to_string()))?;
+
+        let mut rng = rand::thread_rng();
+        let random_num: u32 = rng.gen_range(10000..99999);
+        let tmp_move = parent.join(format!(
+            ".{}.tmp-move.{}",
+            repo_name.to_string_lossy(),
+            random_num
+        ));
+
+        std::fs::rename(&self.root, &tmp_move)?;
+        std::fs::create_dir(&self.root)?;
+        std::fs::rename(&tmp_move, self.root.join("main"))?;
+        std::fs::create_dir(self.root.join("wt"))?;
 
         Ok(())
     }
@@ -89,7 +136,7 @@ impl GitRepo {
 
     pub fn create_worktree(&self, name: &str, base_branch: &str) -> Result<PathBuf> {
         let wt_path = if self.is_worktree_layout() {
-            self.root.join("wt").join(name)
+            self.layout_root.join("wt").join(name)
         } else {
             self.root.join(name)
         };

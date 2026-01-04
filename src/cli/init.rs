@@ -1,3 +1,4 @@
+use crate::config::ProjectConfig;
 use crate::error::Result;
 use crate::git::GitRepo;
 use console::style;
@@ -29,6 +30,12 @@ impl InitCommand {
                 style("✓ Converted to worktree layout (main/ + wt/)").green()
             );
         }
+
+        println!("{}", style("Creating project configuration...").cyan());
+        let config = ProjectConfig::default();
+        let repo_after = GitRepo::discover(&path)?;
+        config.save(repo_after.layout_root())?;
+        println!("{}", style("✓ Created .kayfabe/config.toml").green());
 
         println!(
             "\n{}",

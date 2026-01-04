@@ -1,3 +1,4 @@
+use crate::config::ProjectConfig;
 use crate::error::{KayfabeError, Result};
 use crate::git::{GitRepo, Worktree};
 use crate::ide::{IDELauncher, IDE};
@@ -14,7 +15,12 @@ impl WorktreeCommand {
         no_open: bool,
     ) -> Result<()> {
         let current_dir = std::env::current_dir()?;
-        let repo = GitRepo::discover(&current_dir)?;
+        let repo = GitRepo::discover(&current_dir).map_err(|e| {
+            crate::error::KayfabeError::Other(format!(
+                "{}\n\nHint: Run 'kayfabe init' first to set up the repository",
+                e
+            ))
+        })?;
 
         let base_branch = base.unwrap_or_else(|| {
             repo.get_default_branch()
@@ -28,13 +34,13 @@ impl WorktreeCommand {
             repo.convert_to_worktree_layout()?;
         }
 
-        println!("{}", style("[1/3] Fetching latest refs...").cyan());
+        println!("{}", style("[1/4] Fetching latest refs...").cyan());
         let _ = repo.fetch();
 
         println!(
             "{}",
             style(format!(
-                "[2/3] Creating worktree from base: {}",
+                "[2/4] Creating worktree from base: {}",
                 base_branch
             ))
             .cyan()
@@ -45,12 +51,30 @@ impl WorktreeCommand {
         println!("  Path: {}", style(wt_path.display()).cyan());
         println!("  Branch: {}", style(&name).cyan());
 
+        println!("{}", style("[3/4] Running post-create hooks...").cyan());
+        let config = ProjectConfig::load(repo.layout_root())?;
+        for hook in &config.hooks.post_create {
+            let output = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(hook)
+                .current_dir(&wt_path)
+                .output()?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(KayfabeError::Other(format!(
+                    "Post-create hook failed: {}",
+                    stderr
+                )));
+            }
+        }
+
         if !no_open {
             if let Some(ide_name) = open {
                 if let Some(ide) = IDE::parse(&ide_name) {
                     println!(
                         "{}",
-                        style(format!("[3/3] Launching {}...", ide_name)).cyan()
+                        style(format!("[4/4] Launching {}...", ide_name)).cyan()
                     );
                     IDELauncher::launch(ide, &wt_path)?;
                     println!("{}", style(format!("✓ {} launched", ide_name)).green());

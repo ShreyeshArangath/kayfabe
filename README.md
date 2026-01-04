@@ -6,7 +6,7 @@
 
 [![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange?logo=rust)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/sarangat/kayfabe/ci.yml?branch=main)](https://github.com/sarangat/kayfabe/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/ShreyeshArangath/kayfabe/ci.yml?branch=main)](https://github.com/ShreyeshArangath/kayfabe/actions)
 
 ---
 
@@ -32,7 +32,7 @@ Kayfabe is a CLI that automates the setup and management of isolated development
 macOS, Linux, WSL:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ShreyeshArangath/kayfabe/sarangat/documentation-cleanup/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ShreyeshArangath/kayfabe/main/install.sh | bash
 ```
 
 This downloads and installs the latest pre-built binary for your system. No Rust installation required.
@@ -40,7 +40,7 @@ This downloads and installs the latest pre-built binary for your system. No Rust
 Alternatively, if you have Rust installed:
 
 ```bash
-cargo install --git https://github.com/ShreyeshArangath/kayfabe.git
+cargo install --git https://github.com/ShreyeshArangath/kayfabe.git --branch main
 ```
 
 ### Get Started
@@ -533,7 +533,7 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ```bash
 # Clone the repo
-git clone https://github.com/sarangat/kayfabe.git
+git clone https://github.com/ShreyeshArangath/kayfabe.git
 cd kayfabe
 
 # Run tests
@@ -569,7 +569,6 @@ MIT — See [LICENSE](LICENSE) for details.
 
 ## Questions?
 
-- 📖 [Full Documentation](docs/)
-- 💬 [GitHub Discussions](https://github.com/sarangat/kayfabe/discussions)
-- 🐛 [Report Issues](https://github.com/sarangat/kayfabe/issues)
-- 🌟 [Star us on GitHub](https://github.com/sarangat/kayfabe)
+- 💬 [GitHub Discussions](https://github.com/ShreyeshArangath/kayfabe/discussions)
+- 🐛 [Report Issues](https://github.com/ShreyeshArangath/kayfabe/issues)
+- 🌟 [Star us on GitHub](https://github.com/ShreyeshArangath/kayfabe)

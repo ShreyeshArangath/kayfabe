@@ -939,6 +939,7 @@ dependencies = [
  "dirs",
  "git2",
  "indicatif",
+ "rand",
  "reqwest",
  "serde",
  "tempfile",

@@ -32,7 +32,7 @@ Kayfabe is a CLI that automates the setup and management of isolated development
 **With Cargo** (requires Rust):
 
 ```bash
-cargo install --git https://github.com/ShreyeshArangath/kayfabe.git
+`cargo install --git https://github.com/ShreyeshArangath/kayfabe.git`
 ```
 
 **With Homebrew** (macOS):
@@ -144,24 +144,25 @@ kayfabe init [PATH] [OPTIONS]
 ```
 
 **Options:**
-- `--agent <AGENT>` — Configure for specific agent: `claude`, `cursor`, `windsurf`, or `all` (default: `all`)
+- `--agent <AGENT>` — Configure for specific agent: `claude`, `cursor`, `windsurf`, or `all`
 - `--no-convert` — Don't convert to worktree layout (use existing structure)
-- `--force` — Overwrite existing configurations
 
 **Examples:**
 ```bash
-# Initialize current directory with all agents
+# Initialize current directory (worktree layout only)
 kayfabe init
+
+# Initialize with all agent configurations
+kayfabe init --agent all
 
 # Initialize specific repo for Cursor only
 kayfabe init ~/projects/myapp --agent cursor
 ```
 
 **What it does:**
-1. Detects project type (Rust, Python, TypeScript, etc.)
-2. Converts to worktree layout (`main/` + `wt/`)
-3. Generates agent configuration files
-4. Creates `.kayfabe/config.toml` for project settings
+1. Converts to worktree layout (`main/` + `wt/`)
+2. Creates `.kayfabe/config.toml` for project settings
+3. (Optional) Generates agent configuration files if `--agent` is specified
 
 ---
 

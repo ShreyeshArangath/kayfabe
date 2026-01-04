@@ -9,33 +9,46 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build Release
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            artifact_name: kayfabe
-            asset_name: kayfabe-x86_64-linux
-          - os: macos-latest
-            artifact_name: kayfabe
-            asset_name: kayfabe-aarch64-macos
+  build-linux:
+    name: Build Linux x86_64
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Build release
         run: cargo build --release
-      - name: Create archive (Unix)
+      - name: Create archive
         run: |
           mkdir -p release
-          cp target/release/${{ matrix.artifact_name }} release/
+          cp target/release/kayfabe release/
           cd release
-          tar czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
+          tar czf kayfabe-x86_64-linux.tar.gz kayfabe
           cd ..
       - name: Upload to release
         uses: softprops/action-gh-release@v1
         with:
-          files: release/${{ matrix.asset_name }}.tar.gz
+          files: release/kayfabe-x86_64-linux.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    name: Build macOS ARM64
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release
+        run: cargo build --release
+      - name: Create archive
+        run: |
+          mkdir -p release
+          cp target/release/kayfabe release/
+          cd release
+          tar czf kayfabe-aarch64-macos.tar.gz kayfabe
+          cd ..
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/kayfabe-aarch64-macos.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

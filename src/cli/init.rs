@@ -35,10 +35,7 @@ impl InitCommand {
         let config = ProjectConfig::default();
         let repo_after = GitRepo::discover(&path)?;
         config.save(repo_after.layout_root())?;
-        println!(
-            "{}",
-            style("✓ Created .kayfabe/config.toml").green()
-        );
+        println!("{}", style("✓ Created .kayfabe/config.toml").green());
 
         println!(
             "\n{}",

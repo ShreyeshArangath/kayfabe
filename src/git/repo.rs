@@ -20,16 +20,17 @@ impl GitRepo {
 
         // Try to discover from the path, or if that fails, try to open it directly
         let repo = if discover_path.join(".git").exists() {
-            Repository::open(&discover_path)
-                .or_else(|_| Repository::discover(&discover_path))
+            Repository::open(&discover_path).or_else(|_| Repository::discover(&discover_path))
         } else {
             Repository::discover(&discover_path)
         }
-        .map_err(|e| KayfabeError::Other(format!(
-            "Failed to open repository at {:?}: {}",
-            path.display(),
-            e
-        )))?;
+        .map_err(|e| {
+            KayfabeError::Other(format!(
+                "Failed to open repository at {:?}: {}",
+                path.display(),
+                e
+            ))
+        })?;
 
         let root = repo
             .workdir()
@@ -42,7 +43,11 @@ impl GitRepo {
             root.clone()
         };
 
-        Ok(Self { repo, root, layout_root })
+        Ok(Self {
+            repo,
+            root,
+            layout_root,
+        })
     }
 
     fn is_worktree_layout_root(path: &Path) -> bool {
@@ -79,17 +84,20 @@ impl GitRepo {
 
         if (self.root.join("main")).is_dir() {
             return Err(KayfabeError::Other(
-                "Repo is a git checkout AND already has a main/ dir. Refusing to guess.".to_string(),
+                "Repo is a git checkout AND already has a main/ dir. Refusing to guess."
+                    .to_string(),
             ));
         }
 
-        let parent = self.root.parent().ok_or_else(|| {
-            KayfabeError::Other("Cannot get parent directory".to_string())
-        })?;
+        let parent = self
+            .root
+            .parent()
+            .ok_or_else(|| KayfabeError::Other("Cannot get parent directory".to_string()))?;
 
-        let repo_name = self.root.file_name().ok_or_else(|| {
-            KayfabeError::Other("Cannot get repo name".to_string())
-        })?;
+        let repo_name = self
+            .root
+            .file_name()
+            .ok_or_else(|| KayfabeError::Other("Cannot get repo name".to_string()))?;
 
         let mut rng = rand::thread_rng();
         let random_num: u32 = rng.gen_range(10000..99999);
@@ -198,4 +206,3 @@ impl GitRepo {
         Ok(())
     }
 }
-

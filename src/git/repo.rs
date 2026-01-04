@@ -60,6 +60,17 @@ impl GitRepo {
         }
     }
 
+    pub fn get_default_branch(&self) -> Result<String> {
+        let main_exists = self.branch_exists("main")?;
+        let master_exists = self.branch_exists("master")?;
+
+        match (main_exists, master_exists) {
+            (true, _) => Ok("main".to_string()),
+            (false, true) => Ok("master".to_string()),
+            (false, false) => Ok("main".to_string()),
+        }
+    }
+
     pub fn root(&self) -> &Path {
         &self.root
     }

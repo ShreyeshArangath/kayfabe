@@ -29,18 +29,16 @@ Kayfabe is a CLI that automates the setup and management of isolated development
 
 ### Installation
 
-macOS, Linux, WSL:
+**With Cargo** (requires Rust):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ShreyeshArangath/kayfabe/main/install.sh | bash
+cargo install --git https://github.com/ShreyeshArangath/kayfabe.git
 ```
 
-This downloads and installs the latest pre-built binary for your system. No Rust installation required.
-
-Alternatively, if you have Rust installed:
+**With Homebrew** (macOS):
 
 ```bash
-cargo install --git https://github.com/ShreyeshArangath/kayfabe.git --branch main
+brew install ShreyeshArangath/tap/kayfabe
 ```
 
 ### Get Started

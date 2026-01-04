@@ -36,7 +36,7 @@ enum Commands {
 
         #[arg(
             long,
-            help = "Configure for specific agent [claude|cursor|windsurf|all]"
+            help = "Configure for specific agent [windsurf]"
         )]
         agent: Option<String>,
     },
@@ -49,7 +49,7 @@ enum Commands {
         #[arg(long, help = "Non-interactive mode")]
         non_interactive: bool,
 
-        #[arg(long, help = "Agents to install [claude|cursor|windsurf]")]
+        #[arg(long, help = "Agents to install [windsurf]")]
         agents: Option<Vec<String>>,
     },
 
@@ -91,7 +91,7 @@ enum WorktreeCommands {
         #[arg(long, help = "Base branch (default: main)")]
         base: Option<String>,
 
-        #[arg(long, help = "Launch IDE [cursor|windsurf|idea|code|claude]")]
+        #[arg(long, help = "Launch IDE [windsurf|idea|code]")]
         open: Option<String>,
 
         #[arg(long, help = "Don't launch any IDE")]
@@ -133,13 +133,13 @@ enum WorktreeCommands {
 enum ConfigCommands {
     #[command(about = "Show current configuration")]
     Show {
-        #[arg(help = "Agent to show [claude|cursor|windsurf]")]
+        #[arg(help = "Agent to show [windsurf]")]
         agent: Option<String>,
     },
 
     #[command(about = "Edit configuration in editor")]
     Edit {
-        #[arg(help = "Agent to edit [claude|cursor|windsurf]")]
+        #[arg(help = "Agent to edit [windsurf]")]
         agent: Option<String>,
     },
 

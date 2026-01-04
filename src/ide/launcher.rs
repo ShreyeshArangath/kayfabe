@@ -4,32 +4,26 @@ use std::process::Command;
 
 #[derive(Debug, Clone, Copy)]
 pub enum IDE {
-    Cursor,
     Windsurf,
     Idea,
     Code,
-    Claude,
 }
 
 impl IDE {
     pub fn parse(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
-            "cursor" => Some(IDE::Cursor),
             "windsurf" => Some(IDE::Windsurf),
             "idea" => Some(IDE::Idea),
             "code" => Some(IDE::Code),
-            "claude" => Some(IDE::Claude),
             _ => None,
         }
     }
 
     fn command(&self) -> &str {
         match self {
-            IDE::Cursor => "cursor",
             IDE::Windsurf => "windsurf",
             IDE::Idea => "idea",
             IDE::Code => "code",
-            IDE::Claude => "claude",
         }
     }
 
@@ -47,11 +41,9 @@ pub struct IDELauncher;
 impl IDELauncher {
     pub fn detect_available() -> Vec<IDE> {
         vec![
-            IDE::Cursor,
             IDE::Windsurf,
             IDE::Idea,
             IDE::Code,
-            IDE::Claude,
         ]
         .into_iter()
         .filter(|ide| ide.is_available())

@@ -15,7 +15,7 @@ impl InstallCommand {
     ) -> Result<()> {
         let target = target_dir.unwrap_or_else(|| std::env::current_dir().unwrap());
 
-        let available_agents = vec!["claude", "cursor", "windsurf"];
+        let available_agents = vec!["windsurf"];
 
         let selected_agents = if non_interactive {
             // In non-interactive mode, use provided agents or default to all
@@ -26,7 +26,7 @@ impl InstallCommand {
             }
         } else {
             // Interactive mode
-            let defaults = vec![true, true, true];
+            let defaults = vec![true];
             let selections = MultiSelect::new()
                 .with_prompt("Select agents to install globally")
                 .items(&available_agents)

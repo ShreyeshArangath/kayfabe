@@ -11,10 +11,8 @@ impl ConfigCommand {
         let repo = GitRepo::discover(&current_dir)?;
 
         let files = match agent.as_deref() {
-            Some("claude") => vec!["CLAUDE.md"],
-            Some("cursor") => vec![".cursorrules"],
-            Some("windsurf") => vec![".windsurf/rules/rules.md"],
-            None => vec!["CLAUDE.md", ".cursorrules", ".windsurf/rules/rules.md"],
+            Some("windsurf") => vec![".windsurfrules"],
+            None => vec![".windsurfrules"],
             Some(other) => {
                 return Err(crate::error::KayfabeError::Other(format!(
                     "Unknown agent: {}",
@@ -42,9 +40,7 @@ impl ConfigCommand {
         let repo = GitRepo::discover(&current_dir)?;
 
         let files = vec![
-            ("CLAUDE.md", "Claude Code"),
-            (".cursorrules", "Cursor"),
-            (".windsurf/rules/rules.md", "Windsurf"),
+            (".windsurfrules", "Windsurf"),
         ];
 
         println!("{}", style("Validating agent configurations...").bold());
@@ -112,9 +108,7 @@ impl ConfigCommand {
         let repo = GitRepo::discover(&current_dir)?;
 
         let file = match agent.as_deref() {
-            Some("claude") => "CLAUDE.md",
-            Some("cursor") => ".cursorrules",
-            Some("windsurf") => ".windsurf/rules/rules.md",
+            Some("windsurf") => ".windsurfrules",
             None => {
                 let config_path = GlobalConfig::path()?;
                 let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vim".to_string());

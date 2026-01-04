@@ -15,7 +15,7 @@ impl InitCommand {
             style("Initializing repository for AI-assisted development...").bold()
         );
 
-        let repo = GitRepo::discover(&path)?;
+        let mut repo = GitRepo::discover(&path)?;
 
         if repo.is_worktree_layout() {
             println!(
@@ -33,8 +33,7 @@ impl InitCommand {
 
         println!("{}", style("Creating project configuration...").cyan());
         let config = ProjectConfig::default();
-        let repo_after = GitRepo::discover(&path)?;
-        config.save(repo_after.layout_root())?;
+        config.save(repo.layout_root())?;
         println!("{}", style("✓ Created .kayfabe/config.toml").green());
 
         println!(

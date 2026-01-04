@@ -19,27 +19,11 @@ impl Default for Config {
     fn default() -> Self {
         let mut agents = HashMap::new();
         agents.insert(
-            "claude".to_string(),
-            AgentConfig {
-                enabled: true,
-                template: "default".to_string(),
-                location: "CLAUDE.md".to_string(),
-            },
-        );
-        agents.insert(
-            "cursor".to_string(),
-            AgentConfig {
-                enabled: true,
-                template: "default".to_string(),
-                location: ".cursorrules".to_string(),
-            },
-        );
-        agents.insert(
             "windsurf".to_string(),
             AgentConfig {
                 enabled: true,
                 template: "default".to_string(),
-                location: ".windsurf/rules/rules.md".to_string(),
+                location: ".windsurfrules".to_string(),
             },
         );
 
@@ -135,7 +119,7 @@ impl Default for UIConfig {
 }
 
 fn default_ide() -> String {
-    "cursor".to_string()
+    "windsurf".to_string()
 }
 
 fn default_base_branch() -> String {

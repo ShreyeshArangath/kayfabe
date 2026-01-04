@@ -10,37 +10,18 @@
 
 ---
 
-## Why Kayfabe?
+## What is Kayfabe?
 
-AI coding assistants are powerful, but they need context to perform their role convincingly. **Kayfabe** automates the setup:
+**Kayfabe** (wrestling term): The art of maintaining the illusion that staged events are real. In AI-assisted development, we do the same—we maintain the fiction that AI agents deeply understand your codebase by giving them the context they need to perform convincingly.
 
-- 🎯 **One command** transforms any repo into an AI-ready worktree structure
+Kayfabe is a CLI that automates the setup and management of isolated development environments for AI agents (Claude, Cursor, Windsurf). It handles worktree creation, agent configuration, IDE launching, and workspace hygiene—so you can focus on shipping code with AI, not managing environments.
+
+**Why it matters:**
+- 🎯 **One command** to set up a fully configured AI-ready worktree
 - 🤖 **Agent-aware** — auto-generates `CLAUDE.md`, `.cursorrules`, `.windsurfrules`
 - 🔀 **Multi-agent workflows** — parallel AI sessions on isolated branches
 - ⚡ **Zero configuration** — smart defaults for Rust, Python, TypeScript, and more
 - 🧹 **Intelligent cleanup** — staleness detection keeps your worktrees tidy
-
-### The Problem
-
-```bash
-# Without kayfabe: Manual setup for each AI session
-git clone my-repo
-cd my-repo
-git worktree add wt/feature-x main
-# Now manually create CLAUDE.md, .cursorrules, etc.
-code wt/feature-x
-```
-
-### The Solution
-
-```bash
-# With kayfabe: One command, fully configured
-kayfabe init my-repo --agent all
-kayfabe worktree create feature-x --open cursor
-# ✓ Worktree created
-# ✓ Agent configs generated
-# ✓ IDE launched
-```
 
 ---
 
@@ -48,38 +29,27 @@ kayfabe worktree create feature-x --open cursor
 
 ### Installation
 
-**macOS** (Homebrew)
-```bash
-brew install sarangat/tap/kayfabe
-```
-
-**Linux / macOS** (Cargo)
-```bash
-cargo install kayfabe
-```
-
-**From source**
-```bash
-git clone https://github.com/sarangat/kayfabe.git
-cd kayfabe
-cargo install --path .
-```
-
-### 30-Second Setup
+macOS, Linux, WSL:
 
 ```bash
-# Initialize your repository
-kayfabe init ~/projects/my-repo --agent all
-
-# Create your first worktree
-kayfabe worktree create feature-auth --open cursor
-
-# Done! Your IDE opens with:
-# ✓ New git worktree
-# ✓ CLAUDE.md with project context
-# ✓ .cursorrules with conventions
-# ✓ .windsurfrules for Windsurf
+curl -fsSL https://raw.githubusercontent.com/ShreyeshArangath/kayfabe/sarangat/documentation-cleanup/install.sh | bash
 ```
+
+This downloads and installs the latest pre-built binary for your system. No Rust installation required.
+
+Alternatively, if you have Rust installed:
+
+```bash
+cargo install --git https://github.com/ShreyeshArangath/kayfabe.git
+```
+
+### Get Started
+
+```bash
+kayfabe init ~/projects/my-repo --agent all && kayfabe worktree create feature-auth --open cursor
+```
+
+That's it. Your IDE opens with a fully configured worktree, agent configs, and project context ready to go.
 
 ---
 
@@ -136,7 +106,6 @@ kayfabe init [PATH] [OPTIONS]
 **Options:**
 - `--agent <AGENT>` — Configure for specific agent: `claude`, `cursor`, `windsurf`, or `all` (default: `all`)
 - `--no-convert` — Don't convert to worktree layout (use existing structure)
-- `--template <TPL>` — Apply workflow template during setup
 - `--force` — Overwrite existing configurations
 
 **Examples:**
@@ -146,9 +115,6 @@ kayfabe init
 
 # Initialize specific repo for Cursor only
 kayfabe init ~/projects/myapp --agent cursor
-
-# Use a team template
-kayfabe init ~/projects/myapp --template team-rust-standard
 ```
 
 **What it does:**
@@ -172,7 +138,6 @@ kayfabe worktree create <NAME> [OPTIONS]
 - `--open <IDE>` — Launch IDE: `idea`, `cursor`, `windsurf`, `claude`, `code`
 - `--no-open` — Don't launch any IDE
 - `--from-ticket <ID>` — Name from ticket ID (e.g., `ENG-1234`)
-- `--template <TPL>` — Apply workflow template
 
 **Examples:**
 ```bash
@@ -299,7 +264,6 @@ kayfabe config generate [OPTIONS]
 
 **Options:**
 - `--agent <AGENT>` — Target agent: `claude`, `cursor`, `windsurf`, or `all`
-- `--template <TPL>` — Use specific template
 - `--analyze` — Analyze codebase for smart defaults
 - `--output <PATH>` — Custom output path
 - `--force` — Overwrite existing files
@@ -311,9 +275,6 @@ kayfabe config generate --agent all --analyze
 
 # Generate Cursor rules only
 kayfabe config generate --agent cursor
-
-# Use custom template
-kayfabe config generate --template team-standards
 ```
 
 #### Show current configuration
@@ -349,58 +310,6 @@ Checks all agent config files for correctness.
 
 ---
 
-### `kayfabe template` — Manage Workflow Templates
-
-#### List available templates
-
-```bash
-kayfabe template list [OPTIONS]
-```
-
-**Options:**
-- `--remote` — Include remote templates
-- `--category <CAT>` — Filter by category
-
-#### Create a template
-
-```bash
-kayfabe template create <NAME> [OPTIONS]
-```
-
-**Options:**
-- `--from-current` — Create from current worktree setup
-- `--description <DESC>` — Template description
-
-**Examples:**
-```bash
-# Create from current setup
-kayfabe template create team-rust-standard --from-current \
-  --description "Team Rust project defaults"
-```
-
-#### Apply a template
-
-```bash
-kayfabe template apply <NAME> [PATH]
-```
-
-**Examples:**
-```bash
-# Apply to current worktree
-kayfabe template apply team-rust-standard
-
-# Apply to specific path
-kayfabe template apply team-rust-standard ~/projects/newrepo
-```
-
-#### Export/Import templates
-
-```bash
-kayfabe template export <NAME> <OUTPUT>
-kayfabe template import <PATH>
-```
-
----
 
 ### `kayfabe status` — Show Repository Status
 
@@ -455,15 +364,12 @@ protect_unmerged = true           # Never auto-cleanup worktrees with unmerged w
 
 [agents.claude]
 enabled = true
-template = "default"
 
 [agents.cursor]
 enabled = true
-template = "default"
 
 [agents.windsurf]
 enabled = true
-template = "default"
 
 [ui]
 color = true
@@ -525,21 +431,7 @@ kayfabe worktree create feature-auth-test --base feature-auth-impl --open windsu
 kayfabe worktree list
 ```
 
-### Flow 3: Team Onboarding
-
-```bash
-# Team lead: Create and share template
-kayfabe init ~/projects/company-api --agent all --analyze
-kayfabe template create company-api-standard --from-current \
-  --description "Company API project standards"
-kayfabe template export company-api-standard ~/templates/company-api.toml
-
-# Team member: Use template
-kayfabe init ~/projects/company-api --template company-api-standard
-kayfabe worktree create feature-users --open cursor
-```
-
-### Flow 4: Repository Hygiene
+### Flow 3: Repository Hygiene
 
 ```bash
 # Weekly cleanup
@@ -578,7 +470,6 @@ Kayfabe auto-detects and configures for:
 | Worktree management | ✓ | ✓ | ✗ | ✗ |
 | IDE launching | ✓ | ✗ | ✗ | ✗ |
 | Agent config generation | ✓ | ✗ | ✗ | ✗ |
-| Workflow templates | ✓ | ✗ | ✗ | ✓ |
 | Remote sync | Planned | ✗ | ✗ | ✓ |
 
 ---
@@ -663,7 +554,6 @@ src/
 ├── git/              # Git operations
 ├── agents/           # Agent config generation
 ├── config/           # Configuration management
-├── templates/        # Template system
 ├── ide/              # IDE launching
 ├── ui/               # User interface
 └── error.rs          # Error types
@@ -671,38 +561,9 @@ src/
 
 ---
 
-## Roadmap
-
-### v1.0 (Current)
-- ✓ Core worktree management
-- ✓ Agent configuration generation
-- ✓ IDE launching
-- ✓ Staleness detection & cleanup
-- ✓ Configuration system
-
-### v1.1 (Planned)
-- [ ] Shell completions (bash, zsh, fish)
-- [ ] Interactive mode with fuzzy selection
-- [ ] More built-in templates (Go, Java, Ruby)
-- [ ] Workflow hooks (pre/post operations)
-
-### v2.0 (Future)
-- [ ] Remote template repository
-- [ ] Team configuration sharing
-- [ ] Session tracking & analytics
-- [ ] VS Code extension
-
----
-
 ## License
 
 MIT — See [LICENSE](LICENSE) for details.
-
----
-
-## Etymology
-
-**Kayfabe** (wrestling term): The portrayal of staged events as real. In AI-assisted coding, we maintain the "kayfabe" that AI agents are knowledgeable about our codebase—by properly configuring them with the context they need to perform their role convincingly.
 
 ---
 

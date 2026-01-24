@@ -395,16 +395,16 @@ myproject/
 ```
 
 **Success Criteria**:
-- [ ] Can initialize from SSH URLs (git@github.com:...)
-- [ ] Can initialize from HTTPS URLs (https://github.com/...)
-- [ ] Bare repo cloned correctly (verify with git commands)
-- [ ] Default branch detected (main/master)
-- [ ] All directories created with correct permissions
-- [ ] Config files copied from templates
-- [ ] Project registered in ~/.kayfabe/kayfabe.db
-- [ ] Graceful error on invalid git URL
-- [ ] Graceful error on network failure
-- [ ] Graceful error if directory exists
+- [x] Can initialize from SSH URLs (git@github.com:...)
+- [x] Can initialize from HTTPS URLs (https://github.com/...)
+- [x] Bare repo cloned correctly (verify with git commands)
+- [x] Default branch detected (main/master)
+- [x] All directories created with correct permissions
+- [x] Config files copied from templates
+- [x] Project registered in ~/.kayfabe/kayfabe.db
+- [x] Graceful error on invalid git URL
+- [x] Graceful error on network failure
+- [x] Graceful error if directory exists
 
 **Testing**:
 - Test with public and private repositories

@@ -52,41 +52,56 @@ enum Commands {
 
     /// Remove a task
     Remove {
-        /// Task name
-        name: String,
+        /// Task name (optional if using --interactive)
+        name: Option<String>,
         /// Force removal without confirmation
         #[arg(short, long)]
         force: bool,
+        /// Interactive mode - select task from list
+        #[arg(short, long)]
+        interactive: bool,
     },
 
     /// Execute a task in tmux with Claude
     Execute {
-        /// Task name
-        name: String,
+        /// Task name (optional if using --interactive)
+        name: Option<String>,
         /// Command to execute (default: claude)
         #[arg(short, long)]
         command: Option<String>,
+        /// Interactive mode - select task from list
+        #[arg(short, long)]
+        interactive: bool,
     },
 
     /// Attach to a running task's tmux session
     Attach {
-        /// Task name
-        name: String,
+        /// Task name (optional if using --interactive)
+        name: Option<String>,
+        /// Interactive mode - select task from list
+        #[arg(short, long)]
+        interactive: bool,
     },
 
     /// Kill a running task
     Kill {
-        /// Task name
-        name: String,
+        /// Task name (optional if using --interactive)
+        name: Option<String>,
+        /// Interactive mode - select task from list
+        #[arg(short, long)]
+        interactive: bool,
     },
 
     /// Show logs for a task
     Logs {
-        /// Task name
-        name: String,
+        /// Task name (optional if using --interactive)
+        name: Option<String>,
         /// Follow log output
         #[arg(short, long)]
         follow: bool,
+        /// Interactive mode - select task from list
+        #[arg(short, long)]
+        interactive: bool,
     },
 
     /// Show project status
@@ -167,30 +182,20 @@ async fn main() -> Result<()> {
                 cli::list_tasks(status, tui).await
             }
         }
-        Commands::Remove { name, force } => cli::remove_task(name, force).await,
-        Commands::Execute { name, command } => {
-            let cmd = command.unwrap_or_else(|| "claude".to_string());
-            println!("▶️  Executing task '{}' with command: {}", name, cmd);
-            println!("⚠️  Implementation coming in Phase 5");
-            Ok(())
+        Commands::Remove { name, force, interactive } => {
+            cli::remove_task(name, force, interactive).await
         }
-        Commands::Attach { name } => {
-            println!("🔗 Attaching to task '{}'", name);
-            println!("⚠️  Implementation coming in Phase 5");
-            Ok(())
+        Commands::Execute { name, command, interactive } => {
+            cli::execute_task(name, command, interactive).await
         }
-        Commands::Kill { name } => {
-            println!("💀 Killing task '{}'", name);
-            println!("⚠️  Implementation coming in Phase 5");
-            Ok(())
+        Commands::Attach { name, interactive } => {
+            cli::attach_task(name, interactive).await
         }
-        Commands::Logs { name, follow } => {
-            println!("📜 Showing logs for task '{}'", name);
-            if follow {
-                println!("   Following: enabled");
-            }
-            println!("⚠️  Implementation coming in Phase 5");
-            Ok(())
+        Commands::Kill { name, interactive } => {
+            cli::kill_task(name, interactive).await
+        }
+        Commands::Logs { name, follow, interactive } => {
+            cli::logs_task(name, follow, interactive).await
         }
         Commands::Status => {
             println!("📊 Project Status");

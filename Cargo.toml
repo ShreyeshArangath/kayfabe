@@ -37,6 +37,9 @@ tokio = { version = "1.35", features = ["full"] }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 dirs = "5.0"
 
+# Interactive CLI
+inquire = "0.7"
+
 [dev-dependencies]
 tempfile = "3.8"
 serial_test = "3.0"

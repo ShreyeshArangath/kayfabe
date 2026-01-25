@@ -94,6 +94,9 @@ enum Commands {
     Kill {
         /// Task name (optional if using --interactive)
         name: Option<String>,
+        /// Force kill without confirmation
+        #[arg(short, long)]
+        force: bool,
         /// Interactive mode - select task from list
         #[arg(short, long)]
         interactive: bool,
@@ -106,6 +109,9 @@ enum Commands {
         /// Follow log output
         #[arg(short, long)]
         follow: bool,
+        /// Show all executions history
+        #[arg(short, long)]
+        all: bool,
         /// Interactive mode - select task from list
         #[arg(short, long)]
         interactive: bool,
@@ -197,11 +203,11 @@ async fn main() -> Result<()> {
         Some(Commands::Attach { name, interactive }) => {
             cli::attach_task(name, interactive).await
         }
-        Some(Commands::Kill { name, interactive }) => {
-            cli::kill_task(name, interactive).await
+        Some(Commands::Kill { name, force, interactive }) => {
+            cli::kill_task(name, interactive, force).await
         }
-        Some(Commands::Logs { name, follow, interactive }) => {
-            cli::logs_task(name, follow, interactive).await
+        Some(Commands::Logs { name, follow, all, interactive }) => {
+            cli::logs_task(name, follow, interactive, all).await
         }
         Some(Commands::Status) => {
             println!("📊 Project Status");

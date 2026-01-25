@@ -1,4 +1,4 @@
-use crate::db::models::{Task, TaskStatus};
+use crate::db::models::{ProcessStatus, Task, TaskStatus};
 use crate::tui::state::AppState;
 use chrono::{DateTime, Utc};
 use ratatui::{
@@ -147,20 +147,55 @@ fn create_task_list_item(task: &Task, is_selected: bool) -> ListItem<'_> {
 /// Render the task details panel
 fn render_task_details(f: &mut Frame, area: Rect, state: &AppState) {
     if let Some(task) = state.selected_task() {
-        let details_text = create_task_details(task);
+        // Split the area: top for task details, bottom for execution
+        let has_execution = state.selected_task_execution.is_some();
+        let chunks = if has_execution {
+            Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Percentage(40), // Task details
+                    Constraint::Percentage(60), // Execution details
+                ])
+                .split(area)
+        } else {
+            Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(100)])
+                .split(area)
+        };
 
+        // Render task details
+        let details_text = create_task_details(task);
         let paragraph = Paragraph::new(details_text)
             .block(
                 Block::default()
-                    .title(" Details ")
+                    .title(" Task Details ")
                     .title_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
                     .borders(Borders::ALL)
                     .border_style(Style::default().fg(Color::DarkGray))
                     .border_type(ratatui::widgets::BorderType::Rounded),
             )
             .wrap(Wrap { trim: true });
+        f.render_widget(paragraph, chunks[0]);
 
-        f.render_widget(paragraph, area);
+        // Render execution details if available
+        if let Some(execution) = &state.selected_task_execution {
+            if chunks.len() > 1 {
+                let exec_text = create_execution_details(execution, task);
+                let exec_paragraph = Paragraph::new(exec_text)
+                    .block(
+                        Block::default()
+                            .title(" Execution Details [a: Attach | x: Kill | l: Refresh Logs] ")
+                            .title_style(Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD))
+                            .borders(Borders::ALL)
+                            .border_style(Style::default().fg(Color::Magenta))
+                            .border_type(ratatui::widgets::BorderType::Rounded),
+                    )
+                    .wrap(Wrap { trim: true })
+                    .scroll((0, 0));
+                f.render_widget(exec_paragraph, chunks[1]);
+            }
+        }
     } else {
         let empty = Paragraph::new("No task selected")
             .block(
@@ -248,9 +283,14 @@ fn create_task_details(task: &Task) -> Text<'_> {
         )));
         lines.push(Line::from(""));
 
-        // Wrap description text
+        // Wrap description text (truncate long lines)
         for line in desc.lines() {
-            lines.push(Line::from(Span::styled(line, Style::default().fg(Color::White))));
+            let truncated = if line.len() > 70 {
+                format!("{}...", &line[..67])
+            } else {
+                line.to_string()
+            };
+            lines.push(Line::from(Span::styled(truncated, Style::default().fg(Color::White))));
         }
 
         lines.push(Line::from(""));
@@ -265,6 +305,155 @@ fn create_task_details(task: &Task) -> Text<'_> {
                 Style::default().fg(Color::DarkGray),
             ),
         ]));
+    }
+
+    Text::from(lines)
+}
+
+/// Create execution details display
+fn create_execution_details<'a>(execution: &'a crate::db::models::ExecutionProcess, _task: &Task) -> Text<'a> {
+    let mut lines = Vec::new();
+
+    // Execution status
+    let (status_text, status_color) = match execution.status {
+        ProcessStatus::Running => ("🟢 Running", Color::Green),
+        ProcessStatus::Completed => ("✅ Completed", Color::Blue),
+        ProcessStatus::Failed => ("❌ Failed", Color::Red),
+        ProcessStatus::Killed => ("💀 Killed", Color::Yellow),
+    };
+    lines.push(Line::from(vec![
+        Span::styled("Status: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(status_text, Style::default().fg(status_color).add_modifier(Modifier::BOLD)),
+    ]));
+
+    // Tmux session
+    if let Some(session) = &execution.tmux_session {
+        let session_display = if session.len() > 50 {
+            format!("{}...", &session[..47])
+        } else {
+            session.to_string()
+        };
+        lines.push(Line::from(vec![
+            Span::styled("Session: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(session_display, Style::default().fg(Color::Yellow)),
+        ]));
+    }
+
+    // Command
+    let command_display = if execution.command.len() > 70 {
+        format!("{}...", &execution.command[..67])
+    } else {
+        execution.command.to_string()
+    };
+    lines.push(Line::from(vec![
+        Span::styled("Command: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(command_display, Style::default().fg(Color::White)),
+    ]));
+
+    lines.push(Line::from(""));
+
+    // Timestamps
+    lines.push(Line::from(vec![
+        Span::styled("Started: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            execution.started_at.format("%Y-%m-%d %H:%M:%S").to_string(),
+            Style::default().fg(Color::White)
+        ),
+    ]));
+
+    if let Some(completed) = execution.completed_at {
+        lines.push(Line::from(vec![
+            Span::styled("Completed: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                completed.format("%Y-%m-%d %H:%M:%S").to_string(),
+                Style::default().fg(Color::White)
+            ),
+        ]));
+    }
+
+    if let Some(code) = execution.exit_code {
+        let code_color = if code == 0 { Color::Green } else { Color::Red };
+        lines.push(Line::from(vec![
+            Span::styled("Exit Code: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(code.to_string(), Style::default().fg(code_color)),
+        ]));
+    }
+
+    lines.push(Line::from(""));
+
+    // Output section
+    if execution.status == ProcessStatus::Running {
+        lines.push(Line::from(vec![
+            Span::styled("💡 ", Style::default().fg(Color::Yellow)),
+            Span::styled(
+                "Task is running. Press 'a' to attach to tmux session for live output",
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::ITALIC)
+            ),
+        ]));
+    } else {
+        // Show stdout
+        if let Some(stdout) = &execution.stdout {
+            if !stdout.is_empty() {
+                lines.push(Line::from(Span::styled(
+                    "─── STDOUT ───",
+                    Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+                )));
+
+                // Show first few lines of output (limited to prevent overflow)
+                for line in stdout.lines().take(3) {
+                    // Truncate long lines to prevent overflow
+                    let truncated = if line.len() > 70 {
+                        format!("{}...", &line[..67])
+                    } else {
+                        line.to_string()
+                    };
+                    lines.push(Line::from(Span::styled(
+                        truncated,
+                        Style::default().fg(Color::White)
+                    )));
+                }
+
+                let total_lines = stdout.lines().count();
+                if total_lines > 3 {
+                    lines.push(Line::from(Span::styled(
+                        format!("... ({} more lines - attach to see full output)", total_lines - 3),
+                        Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC)
+                    )));
+                }
+            }
+        }
+
+        // Show stderr
+        if let Some(stderr) = &execution.stderr {
+            if !stderr.is_empty() {
+                lines.push(Line::from(""));
+                lines.push(Line::from(Span::styled(
+                    "─── STDERR ───",
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                )));
+
+                for line in stderr.lines().take(2) {
+                    // Truncate long lines to prevent overflow
+                    let truncated = if line.len() > 70 {
+                        format!("{}...", &line[..67])
+                    } else {
+                        line.to_string()
+                    };
+                    lines.push(Line::from(Span::styled(
+                        truncated,
+                        Style::default().fg(Color::Red)
+                    )));
+                }
+
+                let total_lines = stderr.lines().count();
+                if total_lines > 2 {
+                    lines.push(Line::from(Span::styled(
+                        format!("... ({} more lines - attach to see full output)", total_lines - 2),
+                        Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC)
+                    )));
+                }
+            }
+        }
     }
 
     Text::from(lines)
@@ -333,10 +522,12 @@ fn render_footer(f: &mut Frame, area: Rect, state: &AppState) {
     } else {
         vec![
             ("j/k", "Nav"),
-            (":", "Cmd"),
             ("Enter", "Exec"),
+            ("a", "Attach"),
+            ("x", "Kill"),
+            ("l", "Logs"),
             ("f", "Filter"),
-            ("s", "Sort"),
+            (":", "Cmd"),
             ("?", "Help"),
             ("q", "Quit"),
         ]

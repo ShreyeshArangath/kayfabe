@@ -5,7 +5,6 @@ use std::path::PathBuf;
 
 use crate::db::models::{Project, Task, Worktree};
 use crate::db::operations::worktrees;
-use crate::db::Database;
 use crate::utils::{git, sanitize_name};
 
 /// Manages git worktree lifecycle and operations
@@ -243,6 +242,7 @@ impl<'a> WorktreeManager<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db::Database;
     use std::path::Path;
     use tempfile::TempDir;
 

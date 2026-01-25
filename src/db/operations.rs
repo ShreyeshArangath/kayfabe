@@ -3,7 +3,7 @@ use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::PathBuf;
 
-use super::models::{Project, Task, TaskStatus, Worktree};
+use super::models::{ExecutionProcess, ProcessStatus, Project, Task, TaskStatus, Worktree};
 
 /// Project database operations
 pub mod projects {
@@ -463,6 +463,169 @@ pub mod worktrees {
                     Box::new(e),
                 ))?,
             is_orphan: row.get(6)?,
+        })
+    }
+}
+
+/// ExecutionProcess database operations
+pub mod execution_processes {
+    use super::*;
+
+    /// Insert a new execution process
+    pub fn insert(conn: &Connection, exec: &ExecutionProcess) -> Result<()> {
+        conn.execute(
+            "INSERT INTO execution_processes (id, task_id, command, status, exit_code, stdout, stderr, started_at, completed_at, tmux_session)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                exec.id,
+                exec.task_id,
+                exec.command,
+                exec.status.as_str(),
+                exec.exit_code,
+                exec.stdout,
+                exec.stderr,
+                exec.started_at.to_rfc3339(),
+                exec.completed_at.map(|t| t.to_rfc3339()),
+                exec.tmux_session,
+            ],
+        )
+        .context("Failed to insert execution process")?;
+
+        Ok(())
+    }
+
+    /// Update an execution process
+    pub fn update(conn: &Connection, exec: &ExecutionProcess) -> Result<()> {
+        conn.execute(
+            "UPDATE execution_processes SET
+                status = ?2, exit_code = ?3, stdout = ?4, stderr = ?5, completed_at = ?6
+             WHERE id = ?1",
+            params![
+                exec.id,
+                exec.status.as_str(),
+                exec.exit_code,
+                exec.stdout,
+                exec.stderr,
+                exec.completed_at.map(|t| t.to_rfc3339()),
+            ],
+        )
+        .context("Failed to update execution process")?;
+
+        Ok(())
+    }
+
+    /// Get the active execution for a task
+    pub fn get_active_by_task_id(conn: &Connection, task_id: &str) -> Result<Option<ExecutionProcess>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, task_id, command, status, exit_code, stdout, stderr, started_at, completed_at, tmux_session
+             FROM execution_processes WHERE task_id = ?1 AND status = 'running' ORDER BY started_at DESC LIMIT 1",
+        )?;
+
+        let exec = stmt
+            .query_row(params![task_id], parse_execution_row)
+            .optional()
+            .context("Failed to query active execution")?;
+
+        Ok(exec)
+    }
+
+    /// Get the latest execution for a task (regardless of status)
+    pub fn get_latest_by_task_id(conn: &Connection, task_id: &str) -> Result<Option<ExecutionProcess>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, task_id, command, status, exit_code, stdout, stderr, started_at, completed_at, tmux_session
+             FROM execution_processes WHERE task_id = ?1 ORDER BY started_at DESC LIMIT 1",
+        )?;
+
+        let exec = stmt
+            .query_row(params![task_id], parse_execution_row)
+            .optional()
+            .context("Failed to query latest execution")?;
+
+        Ok(exec)
+    }
+
+    /// Get an execution by ID
+    pub fn get_by_id(conn: &Connection, id: &str) -> Result<Option<ExecutionProcess>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, task_id, command, status, exit_code, stdout, stderr, started_at, completed_at, tmux_session
+             FROM execution_processes WHERE id = ?1",
+        )?;
+
+        let exec = stmt
+            .query_row(params![id], parse_execution_row)
+            .optional()
+            .context("Failed to query execution")?;
+
+        Ok(exec)
+    }
+
+    /// List all executions for a task
+    pub fn list_by_task_id(conn: &Connection, task_id: &str) -> Result<Vec<ExecutionProcess>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, task_id, command, status, exit_code, stdout, stderr, started_at, completed_at, tmux_session
+             FROM execution_processes WHERE task_id = ?1 ORDER BY started_at DESC",
+        )?;
+
+        let executions = stmt
+            .query_map(params![task_id], parse_execution_row)?
+            .collect::<Result<Vec<_>, _>>()
+            .context("Failed to collect executions")?;
+
+        Ok(executions)
+    }
+
+    /// Update execution status and completion details
+    pub fn update_completion(
+        conn: &Connection,
+        id: &str,
+        status: ProcessStatus,
+        exit_code: Option<i32>,
+        stdout: Option<&str>,
+        stderr: Option<&str>,
+    ) -> Result<()> {
+        let completed_at = Utc::now();
+
+        conn.execute(
+            "UPDATE execution_processes SET
+                status = ?2, exit_code = ?3, stdout = ?4, stderr = ?5, completed_at = ?6
+             WHERE id = ?1",
+            params![
+                id,
+                status.as_str(),
+                exit_code,
+                stdout,
+                stderr,
+                completed_at.to_rfc3339(),
+            ],
+        )
+        .context("Failed to update execution completion")?;
+
+        Ok(())
+    }
+
+    /// Helper function to parse an execution process row
+    fn parse_execution_row(row: &rusqlite::Row) -> rusqlite::Result<ExecutionProcess> {
+        Ok(ExecutionProcess {
+            id: row.get(0)?,
+            task_id: row.get(1)?,
+            command: row.get(2)?,
+            status: ProcessStatus::from_str(&row.get::<_, String>(3)?)
+                .ok_or_else(|| rusqlite::Error::InvalidColumnType(3, "status".to_string(), rusqlite::types::Type::Text))?,
+            exit_code: row.get(4)?,
+            stdout: row.get(5)?,
+            stderr: row.get(6)?,
+            started_at: row
+                .get::<_, String>(7)?
+                .parse()
+                .map_err(|e| rusqlite::Error::FromSqlConversionFailure(
+                    7,
+                    rusqlite::types::Type::Text,
+                    Box::new(e),
+                ))?,
+            completed_at: row
+                .get::<_, Option<String>>(8)?
+                .and_then(|s| s.parse().ok()),
+            tmux_session: row.get(9)?,
         })
     }
 }

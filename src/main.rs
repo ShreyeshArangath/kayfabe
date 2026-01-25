@@ -2,6 +2,7 @@ mod cli;
 mod core;
 mod db;
 mod errors;
+mod tui;
 mod utils;
 
 use anyhow::Result;
@@ -12,23 +13,26 @@ use clap::{Parser, Subcommand};
 #[command(version, about = "AI-enhanced CLI task manager with git worktree orchestration", long_about = None)]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
 enum Commands {
     /// Initialize a new Kayfabe project
     Init {
-        /// Project name
-        name: String,
+        /// Project name (optional if using --interactive)
+        name: Option<String>,
         /// Git repository URL (SSH or HTTPS)
-        git_url: String,
+        git_url: Option<String>,
+        /// Interactive mode - wizard-style prompts
+        #[arg(short, long)]
+        interactive: bool,
     },
 
     /// Add a new task
     Add {
-        /// Task name
-        name: String,
+        /// Task name (optional if using --interactive)
+        name: Option<String>,
         /// Task description
         #[arg(short, long)]
         description: Option<String>,
@@ -38,6 +42,9 @@ enum Commands {
         /// Auto-assign to available agent
         #[arg(long)]
         auto_assign: bool,
+        /// Interactive mode - wizard-style prompts
+        #[arg(short, long)]
+        interactive: bool,
     },
 
     /// List all tasks
@@ -164,45 +171,44 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Init { name, git_url } => {
-            cli::init::init(name, git_url).await
+        None => {
+            // No subcommand provided - launch TUI
+            tui::run_tui_standalone().await
         }
-        Commands::Add {
+        Some(Commands::Init { name, git_url, interactive }) => {
+            cli::init::init(name, git_url, interactive).await
+        }
+        Some(Commands::Add {
             name,
             description,
             priority,
             auto_assign,
-        } => cli::add_task(name, description, priority, auto_assign).await,
-        Commands::List { status, tui } => {
-            if tui {
-                println!("📊 Launching TUI...");
-                println!("⚠️  Implementation coming in Phase 4");
-                Ok(())
-            } else {
-                cli::list_tasks(status, tui).await
-            }
+            interactive,
+        }) => cli::add_task(name, description, priority, auto_assign, interactive).await,
+        Some(Commands::List { status, tui }) => {
+            cli::list_tasks(status, tui).await
         }
-        Commands::Remove { name, force, interactive } => {
+        Some(Commands::Remove { name, force, interactive }) => {
             cli::remove_task(name, force, interactive).await
         }
-        Commands::Execute { name, command, interactive } => {
+        Some(Commands::Execute { name, command, interactive }) => {
             cli::execute_task(name, command, interactive).await
         }
-        Commands::Attach { name, interactive } => {
+        Some(Commands::Attach { name, interactive }) => {
             cli::attach_task(name, interactive).await
         }
-        Commands::Kill { name, interactive } => {
+        Some(Commands::Kill { name, interactive }) => {
             cli::kill_task(name, interactive).await
         }
-        Commands::Logs { name, follow, interactive } => {
+        Some(Commands::Logs { name, follow, interactive }) => {
             cli::logs_task(name, follow, interactive).await
         }
-        Commands::Status => {
+        Some(Commands::Status) => {
             println!("📊 Project Status");
             println!("⚠️  Implementation coming in Phase 7");
             Ok(())
         }
-        Commands::Worktree { command } => match command {
+        Some(Commands::Worktree { command }) => match command {
             WorktreeCommands::List { stale } => {
                 println!("🌳 Listing worktrees");
                 if let Some(days) = stale {
@@ -225,13 +231,13 @@ async fn main() -> Result<()> {
                 Ok(())
             }
         },
-        Commands::Clean {
+        Some(Commands::Clean {
             stale,
             orphans,
             all,
             dry_run,
             force,
-        } => {
+        }) => {
             println!("🧹 Cleanup mode");
             if let Some(days) = stale {
                 println!("   Stale threshold: {} days", days);

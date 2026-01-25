@@ -1,4 +1,4 @@
-use crate::db::models::{Task, TaskStatus};
+use crate::db::models::{ExecutionProcess, Task, TaskStatus};
 use anyhow::Result;
 use std::time::Instant;
 
@@ -87,6 +87,9 @@ pub struct AppState {
     pub status_message: Option<String>,
     pub error_message: Option<String>,
     pub message_timestamp: Option<Instant>,
+    pub selected_task_execution: Option<ExecutionProcess>,
+    pub execution_refresh_needed: bool,
+    pub needs_terminal_clear: bool,
 }
 
 impl AppState {
@@ -104,6 +107,9 @@ impl AppState {
             status_message: None,
             error_message: None,
             message_timestamp: None,
+            selected_task_execution: None,
+            execution_refresh_needed: false,
+            needs_terminal_clear: false,
         }
     }
 
@@ -270,5 +276,40 @@ impl AppState {
         } else {
             false
         }
+    }
+
+    /// Set execution details for selected task
+    pub fn set_execution(&mut self, execution: Option<ExecutionProcess>) {
+        self.selected_task_execution = execution;
+    }
+
+    /// Mark that execution details need refresh
+    pub fn mark_execution_refresh_needed(&mut self) {
+        self.execution_refresh_needed = true;
+    }
+
+    /// Clear execution refresh flag
+    pub fn clear_execution_refresh_needed(&mut self) {
+        self.execution_refresh_needed = false;
+    }
+
+    /// Check if we need to refresh execution details
+    pub fn should_refresh_execution(&self) -> bool {
+        self.execution_refresh_needed
+    }
+
+    /// Mark terminal for clearing (after returning from tmux attach)
+    pub fn request_terminal_clear(&mut self) {
+        self.needs_terminal_clear = true;
+    }
+
+    /// Check if terminal needs clearing
+    pub fn needs_clear(&self) -> bool {
+        self.needs_terminal_clear
+    }
+
+    /// Clear the terminal clear flag
+    pub fn clear_terminal_flag(&mut self) {
+        self.needs_terminal_clear = false;
     }
 }

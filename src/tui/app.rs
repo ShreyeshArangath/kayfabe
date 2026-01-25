@@ -8,8 +8,9 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 use std::{io, time::Duration};
 
 use crate::cli;
-use crate::core::TaskManager;
+use crate::core::{Executor, TaskManager};
 use crate::db::models::Project;
+use crate::db::operations::execution_processes;
 use crate::db::Database;
 use crate::tui::{command, events, state::AppState, ui};
 use crate::utils;
@@ -192,6 +193,12 @@ async fn run_task_app<B: ratatui::backend::Backend + std::io::Write>(
     let mut app_state = AppState::new(tasks);
 
     loop {
+        // Check if terminal needs clearing (after returning from tmux attach)
+        if app_state.needs_clear() {
+            terminal.clear()?;
+            app_state.clear_terminal_flag();
+        }
+
         // Render UI
         terminal.draw(|f| ui::render(f, &app_state))?;
 
@@ -223,6 +230,17 @@ async fn run_task_app<B: ratatui::backend::Backend + std::io::Write>(
             if let Ok(updated_tasks) = task_manager.list_tasks(project, None) {
                 let _ = app_state.update_tasks(updated_tasks);
             }
+        }
+
+        // Refresh execution details if needed
+        if app_state.should_refresh_execution() {
+            if let Some(task) = app_state.selected_task() {
+                let db = Database::open().context("Failed to open database")?;
+                if let Ok(Some(exec)) = execution_processes::get_latest_by_task_id(db.conn(), &task.id) {
+                    app_state.set_execution(Some(exec));
+                }
+            }
+            app_state.clear_execution_refresh_needed();
         }
 
         // Check if we should quit
@@ -303,27 +321,138 @@ async fn handle_normal_mode(
         }
         events::KeyAction::Execute => {
             if let Some(task) = state.selected_task() {
-                let task_name = task.name.clone();
+                let task = task.clone(); // Clone to avoid borrow issues
 
-                // Exit TUI to execute task
-                disable_raw_mode()?;
-                execute!(std::io::stdout(), LeaveAlternateScreen)?;
+                // Execute task WITHOUT exiting TUI
+                let db = Database::open().context("Failed to open database")?;
+                let mut executor = Executor::new(db);
 
-                match cli::execute::execute_task(Some(task_name.clone()), None, false).await {
-                    Ok(_) => {
-                        println!("\n✓ Task '{}' execution started", task_name);
-                        state.quit();
+                match executor.execute_task(project, &task, "claude").await {
+                    Ok(exec) => {
+                        state.set_status(format!(
+                            "✓ Started execution for '{}' in session {}",
+                            task.name,
+                            exec.tmux_session.as_ref().unwrap_or(&"unknown".to_string())
+                        ));
+                        state.set_execution(Some(exec));
+                        state.mark_execution_refresh_needed();
+
+                        // Refresh task list to show updated status
+                        if let Ok(updated_tasks) = task_manager.list_tasks(project, None) {
+                            let _ = state.update_tasks(updated_tasks);
+                        }
                     }
                     Err(e) => {
-                        eprintln!("\n✗ Failed to execute task '{}': {}", task_name, e);
-                        println!("\nPress Enter to continue...");
-                        let mut input = String::new();
-                        io::stdin().read_line(&mut input)?;
+                        state.set_error(format!("Failed to execute task: {}", e));
                     }
                 }
+            } else {
+                state.set_error("No task selected".to_string());
+            }
+        }
+        events::KeyAction::Attach => {
+            if let Some(task) = state.selected_task() {
+                let task = task.clone();
 
-                enable_raw_mode()?;
-                execute!(std::io::stdout(), EnterAlternateScreen)?;
+                // Check if task is active
+                if task.status != crate::db::models::TaskStatus::Active {
+                    state.set_error(format!("Task '{}' is not active", task.name));
+                } else {
+                    // Exit TUI temporarily to attach to tmux
+                    disable_raw_mode()?;
+                    execute!(std::io::stdout(), LeaveAlternateScreen)?;
+
+                    let db = Database::open().context("Failed to open database")?;
+                    let executor = Executor::new(db);
+
+                    match executor.attach_task(&task) {
+                        Ok(_) => {
+                            // User has detached from tmux, return to TUI
+                        }
+                        Err(e) => {
+                            eprintln!("\n✗ Failed to attach: {}", e);
+                            println!("\nPress Enter to continue...");
+                            let mut input = String::new();
+                            io::stdin().read_line(&mut input)?;
+                        }
+                    }
+
+                    // Restore TUI with full terminal reset
+                    enable_raw_mode()?;
+                    execute!(std::io::stdout(), EnterAlternateScreen)?;
+
+                    // Request terminal clear for next render cycle
+                    state.request_terminal_clear();
+
+                    // Refresh task list after returning
+                    if let Ok(updated_tasks) = task_manager.list_tasks(project, None) {
+                        let _ = state.update_tasks(updated_tasks);
+                    }
+                    state.mark_execution_refresh_needed();
+                }
+            } else {
+                state.set_error("No task selected".to_string());
+            }
+        }
+        events::KeyAction::Kill => {
+            if let Some(task) = state.selected_task() {
+                let task = task.clone();
+
+                // Check if task is active
+                if task.status != crate::db::models::TaskStatus::Active {
+                    state.set_error(format!("Task '{}' is not active", task.name));
+                } else {
+                    let db = Database::open().context("Failed to open database")?;
+                    let executor = Executor::new(db);
+
+                    match executor.kill_task(&task).await {
+                        Ok(_) => {
+                            state.set_status(format!("✓ Killed task '{}'", task.name));
+                            state.set_execution(None);
+
+                            // Request terminal clear to fix UI corruption
+                            state.request_terminal_clear();
+
+                            // Refresh task list
+                            if let Ok(updated_tasks) = task_manager.list_tasks(project, None) {
+                                let _ = state.update_tasks(updated_tasks);
+                            }
+
+                            // Mark execution refresh needed
+                            state.mark_execution_refresh_needed();
+                        }
+                        Err(e) => {
+                            state.set_error(format!("Failed to kill task: {}", e));
+                        }
+                    }
+                }
+            } else {
+                state.set_error("No task selected".to_string());
+            }
+        }
+        events::KeyAction::ViewLogs => {
+            if let Some(task) = state.selected_task() {
+                let task_id = task.id.clone();
+                let task_name = task.name.clone();
+
+                // Load and display execution for selected task
+                let db = Database::open().context("Failed to open database")?;
+
+                match execution_processes::get_latest_by_task_id(db.conn(), &task_id) {
+                    Ok(Some(exec)) => {
+                        state.set_execution(Some(exec));
+                        state.set_status(format!("Showing logs for '{}'", task_name));
+                        // Request terminal clear to prevent UI corruption
+                        state.request_terminal_clear();
+                    }
+                    Ok(None) => {
+                        state.set_execution(None);
+                        state.set_error(format!("No execution history for '{}'", task_name));
+                    }
+                    Err(e) => {
+                        state.set_error(format!("Failed to load logs: {}", e));
+                    }
+                }
             } else {
                 state.set_error("No task selected".to_string());
             }
@@ -339,7 +468,7 @@ async fn handle_normal_mode(
         }
         events::KeyAction::PageUp | events::KeyAction::PageDown |
         events::KeyAction::Remove | events::KeyAction::OpenThoughts => {
-            // Not implemented yet
+            // TODO: Not implemented yet
         }
         events::KeyAction::None => {}
     }
@@ -397,25 +526,37 @@ async fn execute_command(
                     }
                 }
                 command::Command::Execute { name } => {
-                    // Exit TUI to execute task
-                    disable_raw_mode()?;
-                    execute!(std::io::stdout(), LeaveAlternateScreen)?;
+                    // Get the task first
+                    match task_manager.get_task(project, &name)? {
+                        Some(task) => {
+                            // Execute WITHOUT exiting TUI
+                            let db = Database::open().context("Failed to open database")?;
+                            let mut executor = Executor::new(db);
 
-                    match cli::execute::execute_task(Some(name.clone()), None, false).await {
-                        Ok(_) => {
-                            println!("\n✓ Task '{}' execution started", name);
-                            state.quit();
+                            match executor.execute_task(project, &task, "claude").await {
+                                Ok(exec) => {
+                                    state.set_status(format!(
+                                        "✓ Started execution for '{}' in session {}",
+                                        task.name,
+                                        exec.tmux_session.as_ref().unwrap_or(&"unknown".to_string())
+                                    ));
+                                    state.set_execution(Some(exec));
+                                    state.mark_execution_refresh_needed();
+
+                                    // Refresh task list
+                                    if let Ok(updated_tasks) = task_manager.list_tasks(project, None) {
+                                        let _ = state.update_tasks(updated_tasks);
+                                    }
+                                }
+                                Err(e) => {
+                                    state.set_error(format!("Failed to execute task: {}", e));
+                                }
+                            }
                         }
-                        Err(e) => {
-                            eprintln!("\n✗ Failed to execute task '{}': {}", name, e);
-                            println!("\nPress Enter to continue...");
-                            let mut input = String::new();
-                            io::stdin().read_line(&mut input)?;
+                        None => {
+                            state.set_error(format!("Task '{}' not found", name));
                         }
                     }
-
-                    enable_raw_mode()?;
-                    execute!(std::io::stdout(), EnterAlternateScreen)?;
                 }
                 command::Command::Status => {
                     let task_count = state.tasks.len();
@@ -443,8 +584,85 @@ async fn execute_command(
                 command::Command::Init { .. } => {
                     state.set_error("Cannot initialize project from within TUI".to_string());
                 }
-                command::Command::Attach { .. } | command::Command::Kill { .. } => {
-                    state.set_error("Command not implemented yet".to_string());
+                command::Command::Attach { name } => {
+                    match task_manager.get_task(project, &name)? {
+                        Some(task) => {
+                            if task.status != crate::db::models::TaskStatus::Active {
+                                state.set_error(format!("Task '{}' is not active", task.name));
+                            } else {
+                                // Exit TUI temporarily to attach
+                                disable_raw_mode()?;
+                                execute!(std::io::stdout(), LeaveAlternateScreen)?;
+
+                                let db = Database::open().context("Failed to open database")?;
+                                let executor = Executor::new(db);
+
+                                match executor.attach_task(&task) {
+                                    Ok(_) => {
+                                        // User has detached, return to TUI
+                                    }
+                                    Err(e) => {
+                                        eprintln!("\n✗ Failed to attach: {}", e);
+                                        println!("\nPress Enter to continue...");
+                                        let mut input = String::new();
+                                        io::stdin().read_line(&mut input)?;
+                                    }
+                                }
+
+                                // Restore TUI with full terminal reset
+                                enable_raw_mode()?;
+                                execute!(std::io::stdout(), EnterAlternateScreen)?;
+
+                                // Request terminal clear in the next render cycle
+                                state.request_terminal_clear();
+
+                                // Refresh task list
+                                if let Ok(updated_tasks) = task_manager.list_tasks(project, None) {
+                                    let _ = state.update_tasks(updated_tasks);
+                                }
+                                state.mark_execution_refresh_needed();
+                            }
+                        }
+                        None => {
+                            state.set_error(format!("Task '{}' not found", name));
+                        }
+                    }
+                }
+                command::Command::Kill { name } => {
+                    match task_manager.get_task(project, &name)? {
+                        Some(task) => {
+                            if task.status != crate::db::models::TaskStatus::Active {
+                                state.set_error(format!("Task '{}' is not active", task.name));
+                            } else {
+                                let db = Database::open().context("Failed to open database")?;
+                                let executor = Executor::new(db);
+
+                                match executor.kill_task(&task).await {
+                                    Ok(_) => {
+                                        state.set_status(format!("✓ Killed task '{}'", task.name));
+                                        state.set_execution(None);
+
+                                        // Request terminal clear to fix UI corruption
+                                        state.request_terminal_clear();
+
+                                        // Refresh task list
+                                        if let Ok(updated_tasks) = task_manager.list_tasks(project, None) {
+                                            let _ = state.update_tasks(updated_tasks);
+                                        }
+
+                                        // Mark execution refresh needed
+                                        state.mark_execution_refresh_needed();
+                                    }
+                                    Err(e) => {
+                                        state.set_error(format!("Failed to kill task: {}", e));
+                                    }
+                                }
+                            }
+                        }
+                        None => {
+                            state.set_error(format!("Task '{}' not found", name));
+                        }
+                    }
                 }
             }
         }

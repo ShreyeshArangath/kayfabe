@@ -16,6 +16,9 @@ pub enum KeyAction {
     ToggleSort,
     ToggleHelp,
     Execute,
+    Attach,
+    Kill,
+    ViewLogs,
     Remove,
     OpenThoughts,
     Refresh,
@@ -65,6 +68,9 @@ pub fn handle_key_event(key: KeyEvent) -> KeyAction {
 
         // Actions
         (KeyCode::Enter, _) => KeyAction::Execute,
+        (KeyCode::Char('a'), KeyModifiers::NONE) => KeyAction::Attach,
+        (KeyCode::Char('x'), KeyModifiers::NONE) => KeyAction::Kill,
+        (KeyCode::Char('l'), KeyModifiers::NONE) => KeyAction::ViewLogs,
         (KeyCode::Char('r'), KeyModifiers::NONE) => KeyAction::Remove,
         (KeyCode::Char('t'), KeyModifiers::NONE) => KeyAction::OpenThoughts,
         (KeyCode::Char('f'), KeyModifiers::NONE) => KeyAction::ToggleFilter,

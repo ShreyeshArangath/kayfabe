@@ -150,9 +150,7 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::Init { name, git_url } => {
-            println!("🚀 Initializing project '{}' from {}", name, git_url);
-            println!("⚠️  Implementation coming in Phase 2");
-            Ok(())
+            cli::init::init(name, git_url).await
         }
         Commands::Add {
             name,

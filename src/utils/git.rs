@@ -1,56 +1,88 @@
 use anyhow::{bail, Context, Result};
-use git2::{BranchType, Repository};
+use git2::Repository;
 use std::path::Path;
 use std::process::Command;
 
-/// Validate a git URL format (SSH or HTTPS)
+/// Validates a git URL (SSH or HTTPS format)
 pub fn validate_git_url(url: &str) -> Result<()> {
-    let is_ssh = url.starts_with("git@") || url.starts_with("ssh://");
+    // Check for SSH format (git@github.com:user/repo.git)
+    let is_ssh = url.starts_with("git@") && url.contains(':');
+
+    // Check for HTTPS format (https://github.com/user/repo.git)
     let is_https = url.starts_with("https://") || url.starts_with("http://");
 
     if !is_ssh && !is_https {
         bail!(
-            "Invalid git URL format. Must start with 'git@', 'ssh://', 'https://', or 'http://'"
+            "Invalid git URL format. Expected SSH (git@host:user/repo.git) or HTTPS (https://host/user/repo.git), got: {}",
+            url
         );
+    }
+
+    // Basic validation - URL should contain a path component
+    if is_ssh {
+        if !url.contains('/') {
+            bail!("SSH URL must contain a path (e.g., git@github.com:user/repo.git)");
+        }
+    } else {
+        if url.split('/').count() < 4 {
+            bail!("HTTPS URL must contain a full path (e.g., https://github.com/user/repo.git)");
+        }
     }
 
     Ok(())
 }
 
-/// Detect the default branch of a repository (main, master, or other)
+/// Detects the default branch of a repository (main or master)
 pub fn detect_default_branch(repo: &Repository) -> Result<String> {
-    // Try to get HEAD reference
-    let head = repo
-        .find_reference("HEAD")
-        .context("Failed to find HEAD reference")?;
+    // Try to find the HEAD reference
+    let head = repo.head()
+        .context("Failed to get repository HEAD")?;
 
-    // If HEAD is symbolic (points to a branch), resolve it
-    if let Ok(resolved) = head.resolve() {
-        if let Some(name) = resolved.name() {
-            // Extract branch name from refs/heads/...
-            if let Some(branch_name) = name.strip_prefix("refs/heads/") {
-                return Ok(branch_name.to_string());
-            }
+    if let Some(name) = head.shorthand() {
+        return Ok(name.to_string());
+    }
+
+    // If HEAD doesn't have a name, look for common default branches
+    for branch_name in &["main", "master"] {
+        if repo.find_branch(branch_name, git2::BranchType::Local).is_ok() {
+            return Ok(branch_name.to_string());
         }
     }
 
-    // Fallback: Try common default branches
-    for branch in &["main", "master", "develop"] {
-        if repo.find_branch(branch, BranchType::Local).is_ok() {
-            return Ok(branch.to_string());
-        }
-    }
+    bail!("Could not detect default branch (tried 'main' and 'master')");
+}
 
-    // Last resort: Get the first branch
-    let branches = repo.branches(Some(BranchType::Local))?;
-    for branch_result in branches {
-        let (branch, _) = branch_result?;
-        if let Some(name) = branch.name()? {
-            return Ok(name.to_string());
-        }
-    }
+/// Validates that a repository has commits
+pub fn validate_repo_has_commits(repo: &Repository) -> Result<()> {
+    // Try to get HEAD
+    let head = repo.head()
+        .context("Repository HEAD not found - repository may be empty")?;
 
-    bail!("Could not determine default branch - repository may be empty")
+    // Try to resolve to a commit
+    let _commit = head.peel_to_commit()
+        .context("Repository has no commits")?;
+
+    Ok(())
+}
+
+/// Clone a bare repository
+pub fn clone_bare(url: &str, path: &Path) -> Result<Repository> {
+    let mut fetch_options = git2::FetchOptions::new();
+    let mut callbacks = git2::RemoteCallbacks::new();
+
+    // Set up credential callback for SSH keys
+    callbacks.credentials(|_url, username_from_url, _allowed_types| {
+        git2::Cred::ssh_key_from_agent(username_from_url.unwrap_or("git"))
+    });
+
+    fetch_options.remote_callbacks(callbacks);
+
+    let mut builder = git2::build::RepoBuilder::new();
+    builder.bare(true);
+    builder.fetch_options(fetch_options);
+
+    builder.clone(url, path)
+        .with_context(|| format!("Failed to clone repository from {}", url))
 }
 
 /// Check if a git repository exists at the given path
@@ -225,19 +257,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_validate_git_url() {
-        // Valid SSH URLs
+    fn test_validate_git_url_ssh() {
         assert!(validate_git_url("git@github.com:user/repo.git").is_ok());
-        assert!(validate_git_url("ssh://git@github.com/user/repo.git").is_ok());
+        assert!(validate_git_url("git@gitlab.com:group/subgroup/project.git").is_ok());
+    }
 
-        // Valid HTTPS URLs
+    #[test]
+    fn test_validate_git_url_https() {
         assert!(validate_git_url("https://github.com/user/repo.git").is_ok());
-        assert!(validate_git_url("http://github.com/user/repo.git").is_ok());
+        assert!(validate_git_url("https://gitlab.com/group/project.git").is_ok());
+    }
 
-        // Invalid URLs
-        assert!(validate_git_url("not-a-git-url").is_err());
-        assert!(validate_git_url("ftp://github.com/user/repo.git").is_err());
-        assert!(validate_git_url("/local/path/to/repo").is_err());
+    #[test]
+    fn test_validate_git_url_invalid() {
+        assert!(validate_git_url("not-a-url").is_err());
+        assert!(validate_git_url("ftp://example.com/repo").is_err());
+        assert!(validate_git_url("git@github.com").is_err());
     }
 
     #[test]
@@ -256,9 +291,6 @@ mod tests {
 
     #[test]
     fn test_check_git_available() {
-        // This should succeed if git is installed
-        // We can't guarantee git is installed in all test environments,
-        // so this is more of a smoke test
         let result = check_git_available();
         assert!(result.is_ok(), "git should be available for testing");
     }

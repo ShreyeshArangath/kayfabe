@@ -1,6 +1,5 @@
 use anyhow::Result;
-
-use crate::core::Project;
+use crate::core::project::Project;
 
 /// Handle the init command
 pub async fn init(name: String, git_url: String) -> Result<()> {

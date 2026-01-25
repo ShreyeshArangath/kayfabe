@@ -157,41 +157,17 @@ async fn main() -> Result<()> {
             description,
             priority,
             auto_assign,
-        } => {
-            println!("➕ Adding task '{}'", name);
-            if let Some(desc) = description {
-                println!("   Description: {}", desc);
-            }
-            if let Some(pri) = priority {
-                println!("   Priority: {}", pri);
-            }
-            if auto_assign {
-                println!("   Auto-assign: enabled");
-            }
-            println!("⚠️  Implementation coming in Phase 3");
-            Ok(())
-        }
+        } => cli::add_task(name, description, priority, auto_assign).await,
         Commands::List { status, tui } => {
             if tui {
                 println!("📊 Launching TUI...");
                 println!("⚠️  Implementation coming in Phase 4");
+                Ok(())
             } else {
-                println!("📋 Listing tasks");
-                if let Some(s) = status {
-                    println!("   Filter: {}", s);
-                }
-                println!("⚠️  Implementation coming in Phase 3");
+                cli::list_tasks(status, tui).await
             }
-            Ok(())
         }
-        Commands::Remove { name, force } => {
-            println!("🗑️  Removing task '{}'", name);
-            if force {
-                println!("   Force: enabled");
-            }
-            println!("⚠️  Implementation coming in Phase 3");
-            Ok(())
-        }
+        Commands::Remove { name, force } => cli::remove_task(name, force).await,
         Commands::Execute { name, command } => {
             let cmd = command.unwrap_or_else(|| "claude".to_string());
             println!("▶️  Executing task '{}' with command: {}", name, cmd);

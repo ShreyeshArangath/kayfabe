@@ -1,4 +1,4 @@
-pub mod paths;
 pub mod git;
+pub mod paths;
 
 pub use paths::*;

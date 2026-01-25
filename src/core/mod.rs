@@ -1,4 +1,5 @@
 pub mod project;
+pub mod task;
+pub mod worktree;
 
-// Re-export main types
-pub use project::Project;
+pub use task::TaskManager;

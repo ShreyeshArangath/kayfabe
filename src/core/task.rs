@@ -9,7 +9,7 @@ use crate::utils;
 
 /// Manages task lifecycle with atomic operations
 pub struct TaskManager {
-    db: Database,
+    pub db: Database,
 }
 
 impl TaskManager {

@@ -3,9 +3,10 @@ use anyhow::{Context, Result};
 use crate::core::TaskManager;
 use crate::db::models::TaskStatus;
 use crate::db::Database;
+use crate::tui;
 
 /// List tasks for the current project
-pub async fn list_tasks(status_filter: Option<String>, _tui: bool) -> Result<()> {
+pub async fn list_tasks(status_filter: Option<String>, use_tui: bool) -> Result<()> {
     // Open database connection
     let db = Database::open().context("Failed to open database")?;
 
@@ -16,6 +17,11 @@ pub async fn list_tasks(status_filter: Option<String>, _tui: bool) -> Result<()>
     let project = task_manager
         .get_current_project()
         .context("Failed to get current project. Run this command from within a kayfabe project directory.")?;
+
+    // If TUI mode is requested, launch it
+    if use_tui {
+        return tui::run_tui(&project).await;
+    }
 
     // Parse status filter
     let status = match status_filter {

@@ -37,6 +37,10 @@ impl Project {
         fs::create_dir_all(&project_path)
             .with_context(|| format!("Failed to create project directory: {}", project_path.display()))?;
 
+        // 4a. Canonicalize the project path to get absolute path
+        let project_path = project_path.canonicalize()
+            .with_context(|| format!("Failed to resolve absolute path for: {}", project_path.display()))?;
+
         // 5. Clone bare repository
         println!("📦 Cloning repository...");
         let repo_path = project_path.join(".git");

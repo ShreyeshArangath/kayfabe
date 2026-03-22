@@ -1,0 +1,12 @@
+{
+  "name": "kayfabe",
+  "owner": {
+    "name": "Shreyesh"
+  },
+  "plugins": [
+    {
+      "name": "kayfabe",
+      "source": "./"
+    }
+  ]
+}

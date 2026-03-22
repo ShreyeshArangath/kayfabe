@@ -1,0 +1,12 @@
+{
+  "name": "kayfabe-local",
+  "owner": {
+    "name": "Shreyesh"
+  },
+  "plugins": [
+    {
+      "name": "kayfabe",
+      "source": "./"
+    }
+  ]
+}

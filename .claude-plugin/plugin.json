@@ -1,0 +1,8 @@
+{
+  "name": "kayfabe",
+  "description": "Personal plugin for Shreyesh's agents, skills, and tools. Code review with parallel subagents, and a home for future capabilities.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Shreyesh"
+  }
+}
